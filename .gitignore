@@ -32,4 +32,6 @@
 *.app
 
 /semestralna_praca_POS_klient/nbproject/
+/semestralna_praca_POS_klient/nbproject/*
 /semestralna_praca_POS_server/nbproject/
+/semestralna_praca_POS_server/nbproject/*
