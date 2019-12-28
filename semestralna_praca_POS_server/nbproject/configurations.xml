@@ -4,6 +4,7 @@
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
                    projectFiles="true">
+      <itemPath>ServerConnection.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ResourceFiles"
                    displayName="Resource Files"
@@ -12,6 +13,7 @@
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
                    projectFiles="true">
+      <itemPath>ServerConnection.cpp</itemPath>
       <itemPath>main_SERVER.cpp</itemPath>
     </logicalFolder>
     <logicalFolder name="TestFiles"
@@ -39,6 +41,10 @@
           <commandLine>-lpthread</commandLine>
         </linkerTool>
       </compileType>
+      <item path="ServerConnection.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="ServerConnection.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="main_SERVER.cpp" ex="false" tool="1" flavor2="0">
       </item>
     </conf>
@@ -62,6 +68,10 @@
           <developmentMode>5</developmentMode>
         </asmTool>
       </compileType>
+      <item path="ServerConnection.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="ServerConnection.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="main_SERVER.cpp" ex="false" tool="1" flavor2="0">
       </item>
     </conf>

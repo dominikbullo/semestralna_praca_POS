@@ -35,6 +35,7 @@ OBJECTDIR=${CND_BUILDDIR}/${CND_CONF}/${CND_PLATFORM}
 
 # Object Files
 OBJECTFILES= \
+	${OBJECTDIR}/ServerConnection.o \
 	${OBJECTDIR}/main_SERVER.o
 
 
@@ -61,6 +62,11 @@ LDLIBSOPTIONS=
 ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/semestralna_praca_pos_server: ${OBJECTFILES}
 	${MKDIR} -p ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}
 	${LINK.cc} -o ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/semestralna_praca_pos_server ${OBJECTFILES} ${LDLIBSOPTIONS}
+
+${OBJECTDIR}/ServerConnection.o: ServerConnection.cpp
+	${MKDIR} -p ${OBJECTDIR}
+	${RM} "$@.d"
+	$(COMPILE.cc) -O2 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/ServerConnection.o ServerConnection.cpp
 
 ${OBJECTDIR}/main_SERVER.o: main_SERVER.cpp
 	${MKDIR} -p ${OBJECTDIR}
