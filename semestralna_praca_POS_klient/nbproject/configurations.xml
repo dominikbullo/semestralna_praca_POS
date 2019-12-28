@@ -4,6 +4,7 @@
     <logicalFolder name="HeaderFiles"
                    displayName="Header Files"
                    projectFiles="true">
+      <itemPath>ConnectionClient.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ResourceFiles"
                    displayName="Resource Files"
@@ -12,7 +13,8 @@
     <logicalFolder name="SourceFiles"
                    displayName="Source Files"
                    projectFiles="true">
-      <itemPath>main_CLIENT.cpp</itemPath>
+      <itemPath>ConnectionClient.cpp</itemPath>
+      <itemPath>mainClient.cpp</itemPath>
     </logicalFolder>
     <logicalFolder name="TestFiles"
                    displayName="Test Files"
@@ -39,7 +41,11 @@
           <commandLine>-lpthread</commandLine>
         </linkerTool>
       </compileType>
-      <item path="main_CLIENT.cpp" ex="false" tool="1" flavor2="0">
+      <item path="ConnectionClient.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="ConnectionClient.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="mainClient.cpp" ex="false" tool="1" flavor2="0">
       </item>
     </conf>
     <conf name="Release" type="1">
@@ -62,7 +68,11 @@
           <developmentMode>5</developmentMode>
         </asmTool>
       </compileType>
-      <item path="main_CLIENT.cpp" ex="false" tool="1" flavor2="0">
+      <item path="ConnectionClient.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="ConnectionClient.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="mainClient.cpp" ex="false" tool="1" flavor2="0">
       </item>
     </conf>
   </confs>
