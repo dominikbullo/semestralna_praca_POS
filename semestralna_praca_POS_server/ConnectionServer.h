@@ -12,6 +12,8 @@
 #include <thread>
 #include <mutex>
 
+#include "ConnectedUser.h"
+#include "MessageReader.h"
 
 #ifndef SERVERCONNECTION_H
 #define SERVERCONNECTION_H
@@ -22,6 +24,13 @@ class ConnectionServer {
 public:
     ConnectionServer();
     virtual ~ConnectionServer();
+    void controlUser(int socket);
+
+private:
+    vector<ConnectedUser*> * allUsers;
+    vector<ConnectedUser*> * onlineUsers;
+    MessageReader* messageReader;
+    mutex mtx;
 };
 
 #endif /* SERVERCONNECTION_H */

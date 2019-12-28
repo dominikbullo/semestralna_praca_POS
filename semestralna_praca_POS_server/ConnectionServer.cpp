@@ -4,8 +4,7 @@
 #define LOG 1
 #define SND 2
 
-string username;
-string password;
+
 
 ConnectionServer::ConnectionServer() {
     int sockfd, newsockfd, newsockf2;
@@ -46,13 +45,102 @@ ConnectionServer::ConnectionServer() {
         cout << "Waiting for socket";
         newsockfd = accept(sockfd, (struct sockaddr*) &cli_addr, &cli_len);
 
-        //        thread t(&ServerConnection::controlUser, this, newsockfd);
-        //        threads->push_back(move(t));
+        thread t(&ConnectionServer::controlUser, this, newsockfd);
+        threads->push_back(move(t));
     }
 
     for (thread &a : *threads) {
         a.join();
     }
+}
+
+void ConnectionServer::controlUser(int socket) {
+    ConnectedUser* user;
+    int pozicia = -1;
+    char buffer[256];
+    int n;
+    vector<string>* parsedMsg = new vector<string>();
+    while (true) {
+        parsedMsg->clear();
+        bzero(buffer, 256); //čistí buffer
+        n = read(socket, buffer, 255); //načítava do buffera z newsockfd
+        if (n == 0 || n == -1) {
+            break;
+        }
+        std::cout << std::endl << n << std::endl;
+        std::cout << std::endl << string(buffer);
+        
+        // parser spravy 
+        messageReader->readMsg(parsedMsg, string(buffer)); //zavoal parsovac spravy
+        
+        std::cout << std::endl << parsedMsg->at(1) << parsedMsg->at(2);
+        const char* msg;
+        cout << "Message is" << msg;
+        
+        //        switch (stoi(parsedMsg->at(0))) {
+        //            case 0: // sprava od klienta , registracia
+        //                if (registerUser(*parsedMsg)) {
+        //                    msg = "0;T";
+        //
+        //                } else {
+        //                    msg = "0;F";
+        //                }
+        //                n = write(socket, msg, strlen(msg) + 1); //zasiela správu "msg" klientovi
+        //                break;
+        //            case 1: // sprava od klienta , prihlasenie
+        //                int i;
+        //                if ((i = loginUser(*parsedMsg, socket)) != -1) {
+        //                    pozicia = i;
+        //                    user = allUsers->at(i);
+        //                    msg = "0;T";
+        //                } else {
+        //                    msg = "0;F";
+        //                }
+        //                n = write(socket, msg, strlen(msg) + 1); //zasiela správu "msg" klientovi
+        //                break;
+        //
+        //            case 2: // sprava od klienta , odhlasenie
+        //
+        //                break;
+        //            case 3: // sprava od klienta , poslanie spravy
+        //                sendMsg(*parsedMsg);
+        //                break;
+        //            case 4:
+        //            {
+        //                //vyzor spravy 4;username
+        //                vector<string>*contacts = user->getContacts();
+        //                bool flag = false;
+        //                //                for(int i = 0 ; i< contacts; i++){
+        //                //                    if(contacts->at(i).compare(parsedMsg->at(1)) == 0){
+        //                //                        flag = true;
+        //                //                    }
+        //                //                
+        //                //                }
+        //                //                if(!flag){
+        //                //                    msg =  "0;T";
+        //                //                    user->getContacts()->pop_back(parsedMsg->at(1));
+        //                //                }else{
+        //                //                    msg =  "0;F";
+        //                //                }
+        //                n = write(socket, msg, strlen(msg) + 1); //zasiela správu "msg" klientovi
+        //                break;
+        //            }
+        //
+        //
+        //            case 5:
+        //                //dorobit vypis kontaktov cey getContacts
+        //
+        //                break;
+        //
+        //            case 6:
+        //
+        //
+        //                break;
+        //        }
+
+    }
+
+    close(socket);
 }
 
 ConnectionServer::~ConnectionServer() {
