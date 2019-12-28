@@ -41,3 +41,5 @@ nbbuild/
 dist/
 nbdist/
 .nb-gradle/
+/semestralna_praca_POS_klient/nbproject/configurations.xml
+/semestralna_praca_POS_server/nbproject/configurations.xml

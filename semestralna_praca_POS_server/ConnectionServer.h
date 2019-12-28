@@ -18,10 +18,10 @@
 
 using namespace std;
 
-class ServerConnection {
+class ConnectionServer {
 public:
-    ServerConnection();
-    virtual ~ServerConnection();
+    ConnectionServer();
+    virtual ~ConnectionServer();
 };
 
 #endif /* SERVERCONNECTION_H */

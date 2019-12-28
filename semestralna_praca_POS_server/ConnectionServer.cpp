@@ -1,11 +1,13 @@
-#include "ServerConnection.h"
+#include "ConnectionServer.h"
+
 #define REG 0
 #define LOG 1
 #define SND 2
+
 string username;
 string password;
 
-ServerConnection::ServerConnection() {
+ConnectionServer::ConnectionServer() {
     int sockfd, newsockfd, newsockf2;
 
     socklen_t cli_len;
@@ -39,9 +41,21 @@ ServerConnection::ServerConnection() {
     cli_len = sizeof (cli_addr);
 
     vector<thread> *threads = new vector<thread>();
+
+    while (true) {
+        cout << "Waiting for socket";
+        newsockfd = accept(sockfd, (struct sockaddr*) &cli_addr, &cli_len);
+
+        //        thread t(&ServerConnection::controlUser, this, newsockfd);
+        //        threads->push_back(move(t));
+    }
+
+    for (thread &a : *threads) {
+        a.join();
+    }
 }
 
-ServerConnection::~ServerConnection() {
+ConnectionServer::~ConnectionServer() {
 }
 
 
