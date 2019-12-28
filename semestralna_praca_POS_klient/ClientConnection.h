@@ -11,7 +11,6 @@
 #include <unistd.h>
 #include <vector>
 #include <iostream>
-#include "MessageReader.h"
 #include <thread>
 #include <mutex>
 #include <condition_variable>
@@ -29,22 +28,12 @@ struct Data{
 class ClientConnection {
 public:
     ClientConnection();
-    bool sendMessage(string username);
-    bool userRegister();
-    void menuLogged();
-    bool userLogin();
-    vector<string> showContacts();
-    void addContact();
-    void deleteContact();
-    int menu();
     virtual ~ClientConnection();
-    bool addContact(string pusername);
-    void reader();
+
 private:
     bool logged;
     int sockfd;
     string username;
-    MessageReader* messReader;
     bool end;
     vector<vector<string>* > * messages;
     string response;
