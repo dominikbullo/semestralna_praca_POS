@@ -31,4 +31,5 @@
 *.out
 *.app
 
-*/nbprojekt
+/semestralna_praca_POS_klient/nbproject/
+/semestralna_praca_POS_server/nbproject/
