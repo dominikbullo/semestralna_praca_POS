@@ -25,6 +25,8 @@ public:
     ConnectionServer();
     virtual ~ConnectionServer();
     void controlUser(int socket);
+    bool registerUser(vector<string> parsedMsg);
+    int loginUser(vector<string> parsedMsg, int socket);
 
 private:
     vector<ConnectedUser*> * allUsers;

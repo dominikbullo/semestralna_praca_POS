@@ -7,6 +7,10 @@
 using namespace std;
 
 ConnectionServer::ConnectionServer() {
+    // vytvorím si štruktúry
+    onlineUsers = new vector<ConnectedUser*>();
+    allUsers = new vector<ConnectedUser*>();
+
     int sockfd, newsockfd, newsockf2;
 
     socklen_t cli_len;
@@ -63,20 +67,26 @@ ConnectionServer::ConnectionServer() {
 }
 
 void ConnectionServer::controlUser(int socket) {
+     cout << "control user on socket " << socket << endl;
     ConnectedUser* user;
 
     char buffer[256];
     int response;
+    const char* msg;
+    int pozicia = -1;
+    int n;
 
     vector<string>* parsedMsg = new vector<string>();
 
     while (true) {
         parsedMsg->clear();
-
         //čistí buffer
         bzero(buffer, 256);
         //načítava do buffera z newsockfd
         response = read(socket, buffer, 255);
+
+        cout << endl << response << endl;
+        cout << endl << string(buffer) << endl;
 
         if (response == 0 || response == -1) {
             break;
@@ -90,26 +100,43 @@ void ConnectionServer::controlUser(int socket) {
 
         cout << endl << parsedMsg->at(1) << " " << parsedMsg->at(2) << endl;
 
-        const char* msg;
-        //        cout << "Message is" << msg << endl;
-        //        cout << "Message is lalalala" << parsedMsg << endl;
-        cout << "parsed " << stoi(parsedMsg->at(0)) << endl;
-        cout << "type parsed " << typeid (stoi(parsedMsg->at(0))).name() << endl;
-
         switch (stoi(parsedMsg->at(0))) {
             case 1:
                 // register user
                 cout << "Received message type 1" << endl;
                 cout << "Need to register user" << endl;
+                if (registerUser(*parsedMsg)) {
+                    msg = "0;T";
+
+                } else {
+                    msg = "0;F";
+                }
+
+                cout << "sending response " << msg << endl;
+                n = write(socket, msg, strlen(msg) + 1); //zasiela správu "msg" klientovi                
                 break;
             case 2:
                 // login user
                 cout << "Received message type 2" << endl;
                 cout << "Need to login user" << endl;
+                int i;
+                cout << "logging user on socket " << socket << endl;
+                if ((i = loginUser(*parsedMsg, socket)) != -1) {
+                    pozicia = i;
+                    user = allUsers->at(i);
+                    msg = "0;T";
+                } else {
+                    msg = "0;F";
+                }
+
+                cout << "sending response " << msg << endl;
+                n = write(socket, msg, strlen(msg) + 1); //zasiela správu "msg" klientovi
+                break;
             case 3:
                 // received message
                 cout << "Received message type 3" << endl;
                 cout << "Received messsage to user" << endl;
+                break;
             case 4:
                 // show contact
                 cout << "Received message type 4" << endl;
@@ -132,8 +159,63 @@ void ConnectionServer::controlUser(int socket) {
         }
     }
 
-    cout << "Closing socket";
+    cout << "Closing socket" << endl;
     close(socket);
+}
+
+bool ConnectionServer::registerUser(vector<string> parsedMsg) {
+    string username = parsedMsg.at(1);
+    string password = parsedMsg.at(2);
+    ConnectedUser * user;
+    bool flag;
+    cout << "here i am" << endl;
+    for (auto a : *allUsers) {
+        cout << "for " << endl;
+        if (a->getUsername().compare(username) == 0) {
+            cout << a->getUsername();
+            cout << "here i am and return false" << endl;
+            return false;
+        }
+    }
+    user = new ConnectedUser();
+    user->setUsername(username);
+    user->setPassword(password);
+    unique_lock<mutex> lck(mtx);
+    allUsers->push_back(user);
+    lck.unlock();
+    user = nullptr;
+    return true;
+}
+
+int ConnectionServer::loginUser(vector<string> parsedMsg, int socket) {
+    string username = parsedMsg.at(1);
+    std::cout << username << endl;
+
+    string password = parsedMsg.at(2);
+    std::cout << password << endl;
+
+    int i = -1;
+    for (auto a : *allUsers) {
+        i++;
+        if (a->getUsername().compare(username) == 0 && a->getPassword().compare(password) == 0) {
+            if (a->getSocket() == -1) {
+                cout << "socket nastavujem na " << socket << endl;
+                unique_lock<mutex> lck(mtx);
+                a->setSocket(socket);
+                onlineUsers->push_back(a);
+                lck.unlock();
+                cout << "socket nastavený na " << a->getSocket() << endl;
+                cout << "push into online users" << endl;
+                cout << "return (position?)" << i << endl;
+                return i;
+            } else {
+                cout << "return bcs sck is not -1" << endl;
+                return -1;
+            }
+        }
+    }
+    cout << "return end" << endl;
+    return -1;
 }
 
 ConnectionServer::~ConnectionServer() {
