@@ -4,6 +4,8 @@
 #define LOG 1
 #define SND 2
 
+using namespace std;
+
 ConnectionServer::ConnectionServer() {
     int sockfd, newsockfd, newsockf2;
 
@@ -77,16 +79,43 @@ void ConnectionServer::controlUser(int socket) {
         std::cout << std::endl << parsedMsg->at(1) << parsedMsg->at(2);
 
         const char* msg;
-        cout << "Message is" << msg;
+        cout << "Message is" << msg << endl;
+        cout << "Message is" << parsedMsg << endl;
         switch (stoi(parsedMsg->at(0))) {
             case 1:
+                // register user
                 std::cout << "Received message type 1";
+                std::cout << "Need to register user";
+                break;
+            case 2:
+                // login user
+                std::cout << "Received message type 2";
+                std::cout << "Need to login user";
+            case 3:
+                // received message
+                std::cout << "Received message type 3";
+                std::cout << "Received messsage to user";
+            case 4:
+                // show contact
+                std::cout << "Received message type 4";
+                break;
+            case 5:
+                // add contact
+                std::cout << "Received message type 5";
+                break;
+            case 6:
+                // delete contact
+                std::cout << "Received message type 6";
+                break;
+            case 10:
+                // make contact offline
+                std::cout << "Received message type 10";
                 break;
             default:
                 std::cout << "Not implemented yet!";
         }
     }
-    
+
     std::cout << "Closing socket";
     close(socket);
 }
