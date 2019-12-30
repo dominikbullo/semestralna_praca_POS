@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string>
 #include <string.h>
+#include <sstream>
 #include <unistd.h>
 #include <vector>
 #include <iostream>
