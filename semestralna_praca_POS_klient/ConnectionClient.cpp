@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "ConnectionClient.h"
 
 using namespace std;
@@ -18,7 +20,7 @@ ConnectionClient::ConnectionClient() {
             );
     //ako druhý parameter zadávame číslo portu
 
-    serv_addr.sin_port = htons(20052);
+    serv_addr.sin_port = htons(20045);
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -81,7 +83,7 @@ int ConnectionClient::menu() {
             }
             case 2:
             {
-                getContacts();
+                sendRequest(4);
                 break;
             }
             case 3:
@@ -92,7 +94,7 @@ int ConnectionClient::menu() {
                 cin >> username;
                 msg = "4;" + username;
                 buffer = &msg[0u];
-                n = write(sockfd, buffer, 255); //pošle serveru správu uloženú v bufferi
+                n = write(sockfd, buffer, 255);
 
 
 
@@ -107,7 +109,7 @@ int ConnectionClient::menu() {
                 cin >> username;
                 msg = "2;" + username;
                 buffer = &msg[0u];
-                n = write(sockfd, buffer, 255); //pošle serveru správu uloženú v bufferi
+                n = write(sockfd, buffer, 255);
                 cin.clear();
                 cin.ignore(1000, '\n');
                 break;
@@ -138,7 +140,7 @@ int ConnectionClient::menu() {
                 string msg;
                 msg = "8;";
                 buffer = &msg[0u];
-                n = write(sockfd, buffer, 255); //pošle serveru správu uloženú v bufferi
+                n = write(sockfd, buffer, 255);
                 logged = false;
                 break;
             }
@@ -147,7 +149,7 @@ int ConnectionClient::menu() {
                 string msg;
                 msg = "7;";
                 buffer = &msg[0u];
-                n = write(sockfd, buffer, 255); //pošle serveru správu uloženú v bufferi
+                n = write(sockfd, buffer, 255);
                 logged = false;
                 break;
             }
@@ -190,7 +192,7 @@ int ConnectionClient::menu() {
                 string msg;
                 msg = "10;";
                 buffer = &msg[0u];
-                n = write(sockfd, buffer, 255); //pošle serveru správu uloženú v bufferi
+                n = write(sockfd, buffer, 255);
                 end = true;
                 break;
             }
@@ -204,92 +206,23 @@ void ConnectionClient::getContacts() {
     const char* buffer;
     int n;
     buffer = "5;";
-    n = write(sockfd, buffer, 255); //pošle serveru správu uloženú v bufferi
+    n = write(sockfd, buffer, 255);
     unique_lock<mutex> lk(mtx);
 
     cv.wait(lk);
 
     lk.unlock();
-
-}
-
-bool ConnectionClient::userLogin() {
-    int n;
-    string username;
-    char* buffer;
-    string password;
-
-    cout << "Welcome!\n-------------------------\n\nPlease login.\nEnter a new username:\n";
-
-    cin >> username;
-    cin.clear();
-    cin.ignore(10000, '\n');
-
-    cout << "\nPlease enter a new password:\n";
-
-
-    cin >> password;
-    cin.clear();
-    cin.ignore(10000, '\n');
-
-
-    string msg = "1;" + username + ";" + password;
-    sendToServer(msg);
-
-    unique_lock<mutex> lk(mtx);
-    cv.wait(lk);
-    lk.unlock();
-    if (string(response).compare("T") == 0) {
-        this->username = username;
-        return true;
-    }
-    return false;
-
-}
-
-bool ConnectionClient::userRegister() {
-    const char* buffer;
-    char buffer2[256];
-    int n;
-    string username;
-    string password;
-    cout << "\nEnter a new username:\n";
-
-    cin >> username;
-    cin.clear();
-    cin.ignore(10000, '\n');
-
-    cout << "\nPlease enter a new password:\n";
-
-    cin >> password;
-    cin.clear();
-    cin.ignore(10000, '\n');
-
-    string msg = "0;" + username + ";" + password;
-    buffer = msg.c_str();
-    n = write(sockfd, buffer, 255); //pošle serveru správu uloženú v bufferi
-
-    unique_lock<mutex> lk(mtx);
-
-    cv.wait(lk);
-
-    lk.unlock();
-    if (string(response).compare("T") == 0) {
-        return true;
-    }
-    return false;
 
 }
 
 bool ConnectionClient::sendRequest(int option) {
     string toUser;
-    string msg;
+    string msg = "";
     string username = "errorName";
     string password = "errorPasswd";
     string message;
     switch (option) {
         case 1:
-
             cout << "\nEnter a new username:\n";
 
             cin >> username;
@@ -301,11 +234,10 @@ bool ConnectionClient::sendRequest(int option) {
             cin >> password;
             cin.clear();
             cin.ignore(10000, '\n');
-            msg = option + ";" + username + ";" + password;
+            msg = to_string(option) + ";" + username + ";" + password;
+            cout << option << endl;
             break;
-
         case 2:
-
             cout << "\nEnter a username:\n";
 
             cin >> username;
@@ -319,9 +251,7 @@ bool ConnectionClient::sendRequest(int option) {
             cin.ignore(10000, '\n');
             msg = option + ";" + username + ";" + password;
             break;
-
         case 3:
-
             cout << "Enter username of message reciever: " << endl;
             cin >> toUser;
             if (toUser != this->username) {
@@ -330,12 +260,25 @@ bool ConnectionClient::sendRequest(int option) {
                 msg = option + ";" + username + ";" + message + ";" + this->username;
             }
             break;
-
+        case 4:
+            cout << "Enter username: " << endl;
+            cin >> username;
+            msg = option;
+            // show contact
+            break;
+        case 5:
+            // add contact
+            break;
+        case 6:
+            // delete contact
+            break;
+        case 10:
+            msg = option;
+            break;
         default:
             cout << "\n404\n";
             break;
     }
-
     sendToServer(msg);
 
     unique_lock<mutex> lk(mtx);
@@ -351,6 +294,7 @@ bool ConnectionClient::sendRequest(int option) {
 }
 
 void ConnectionClient::sendToServer(string message) {
+    cout << message << endl;
     char* buffer = &message[0u];
     int any = write(sockfd, buffer, 255);
 }
