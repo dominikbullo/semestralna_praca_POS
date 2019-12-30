@@ -30,6 +30,8 @@ ConnectionClient::ConnectionClient() {
         perror("ERROR!!!");
     }
 
+    thread t(&ConnectionClient::reader, this);
+    logged = false;
     while (true) {
         //sendMessage();
         if (end) {
@@ -37,6 +39,55 @@ ConnectionClient::ConnectionClient() {
         }
         menu();
     }
+    t.join();
+    delete server;
+}
+
+void ConnectionClient::reader() {
+    char buffer2[256];
+    vector<string>* parsMsg = new vector<string>();
+    int n;
+    while (!end) {
+        parsMsg->clear();
+        n = read(sockfd, buffer2, 255);
+        messReader->readMsg(parsMsg, string(buffer2));
+        cout <<  "reader switch " << parsMsg->at(0) << " " << parsMsg->at(1) << endl;
+        switch (stoi(parsMsg->at(0))) {
+            case 0:
+            {
+                response = parsMsg->at(1);
+                cv.notify_all();
+                break;
+            }
+            case 1:
+            {
+                vector<string>* vec = new vector<string>(*parsMsg);
+                messages->push_back(vec);
+                break;
+            }
+            case 2:
+            {
+                cout << endl << "CONTACTS:" << endl;
+                for (int i = 1; i < parsMsg->size(); i++) {
+                    if (parsMsg->at(i) != "") {
+                        cout << i << "." << parsMsg->at(i) << endl;
+                    }
+
+                }
+                cv.notify_all();
+                break;
+            }
+            case 3:
+                requests->push_back(parsMsg->at(1));
+                break;
+
+            case 10:
+                end = true;
+                // cv.notify_all();
+                break;
+        }
+    }
+    delete parsMsg;
 }
 
 int ConnectionClient::menu() {
@@ -54,9 +105,9 @@ int ConnectionClient::menu() {
         cout << "\t6. Delete account." << endl;
         cout << "\t10. CLOSE" << endl << endl << endl;
         cout << "SPRAVY:" << endl;
-        for (int i = 0; i < messages->size(); i++) {
-            cout << (*messages)[i]->at(2) << ": " << (*messages)[i]->at(1) << endl;
-        }
+//        for (int i = 0; i < messages->size(); i++) {
+//            cout << (*messages)[i]->at(2) << ": " << (*messages)[i]->at(1) << endl;
+//        }
         cout << endl << endl;
 
         do {
@@ -170,19 +221,19 @@ int ConnectionClient::menu() {
         switch (option) {
             case 1:
                 if (sendRequest(option)) {
-                    cout << "\nRegistration successful";
-                    printf("\033[H\033[J");
+                    cout << "\nRegistration successful\n\n";
+                    //printf("\033[H\033[J");
                 } else {
-                    cout << "Username already exists";
+                cout << "Username already exists\n";
                 }
                 break;
             case 2:
                 if (sendRequest(option)) {
                     logged = true;
-                    cout << "Log-in successful";
-                    printf("\033[H\033[J");
+                    cout << "Log-in successful\n";
+                    //printf("\033[H\033[J");
                 } else {
-                    cout << "Wrong details";
+                    cout << "Wrong details\n";
                 }
                 break;
             case 10:
@@ -235,7 +286,6 @@ bool ConnectionClient::sendRequest(int option) {
             cin.clear();
             cin.ignore(10000, '\n');
             msg = to_string(option) + ";" + username + ";" + password;
-            cout << option << endl;
             break;
         case 2:
             cout << "\nEnter a username:\n";
@@ -249,7 +299,7 @@ bool ConnectionClient::sendRequest(int option) {
             cin >> password;
             cin.clear();
             cin.ignore(10000, '\n');
-            msg = option + ";" + username + ";" + password;
+            msg = to_string(option) + ";" + username + ";" + password;
             break;
         case 3:
             cout << "Enter username of message reciever: " << endl;
@@ -273,6 +323,7 @@ bool ConnectionClient::sendRequest(int option) {
             // delete contact
             break;
         case 10:
+            end = true;
             msg = option;
             break;
         default:
@@ -290,7 +341,6 @@ bool ConnectionClient::sendRequest(int option) {
         return true;
     }
     return false;
-
 }
 
 void ConnectionClient::sendToServer(string message) {

@@ -13,6 +13,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include "MessageReader.h"
 
 #ifndef CONNECTIONCLIENT_H
 #define CONNECTIONCLIENT_H
@@ -29,6 +30,7 @@ public:
     int menu();
     void getContacts();
     void sendToServer(string message);
+    void reader();
     virtual ~ConnectionClient() {
         delete requests;
         for(auto a : *messages){
@@ -46,6 +48,7 @@ private:
     mutex mtx;
     condition_variable cv;
     string response;
+    MessageReader* messReader;
 };
 
 #endif /* CONNECTIONCLIENT_H */
