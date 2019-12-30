@@ -5,10 +5,9 @@
 
 using namespace std;
 
-
 int main(int argc, char** argv) {
-    cout << "Hello from SERVER";
-    ConnectionServer* connection = new ConnectionServer();   
+    cout << "Hello from SERVER" << endl;
+    ConnectionServer* connection = new ConnectionServer();
     return EXIT_SUCCESS;
 }
 
