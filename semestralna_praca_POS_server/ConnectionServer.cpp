@@ -70,13 +70,13 @@ void ConnectionServer::controlUser(int socket) {
             break;
         }
 
-        std::cout << std::endl << response << std::endl;
-        std::cout << std::endl << string(buffer);
+        cout << endl << response << endl;
+        cout << endl << string(buffer);
 
         // parser spravy 
         messageReader->readMsg(parsedMsg, string(buffer)); //zavoal parsovac spravy
 
-        std::cout << std::endl << parsedMsg->at(1) << parsedMsg->at(2);
+        cout << endl << parsedMsg->at(1) << parsedMsg->at(2);
 
         const char* msg;
         cout << "Message is" << msg << endl;
@@ -84,39 +84,39 @@ void ConnectionServer::controlUser(int socket) {
         switch (stoi(parsedMsg->at(0))) {
             case 1:
                 // register user
-                std::cout << "Received message type 1";
-                std::cout << "Need to register user";
+                cout << "Received message type 1";
+                cout << "Need to register user";
                 break;
             case 2:
                 // login user
-                std::cout << "Received message type 2";
-                std::cout << "Need to login user";
+                cout << "Received message type 2";
+                cout << "Need to login user";
             case 3:
                 // received message
-                std::cout << "Received message type 3";
-                std::cout << "Received messsage to user";
+                cout << "Received message type 3";
+                cout << "Received messsage to user";
             case 4:
                 // show contact
-                std::cout << "Received message type 4";
+                cout << "Received message type 4";
                 break;
             case 5:
                 // add contact
-                std::cout << "Received message type 5";
+                cout << "Received message type 5";
                 break;
             case 6:
                 // delete contact
-                std::cout << "Received message type 6";
+                cout << "Received message type 6";
                 break;
             case 10:
                 // make contact offline
-                std::cout << "Received message type 10";
+                cout << "Received message type 10";
                 break;
             default:
-                std::cout << "Not implemented yet!";
+                cout << "Not implemented yet!";
         }
     }
 
-    std::cout << "Closing socket";
+    cout << "Closing socket";
     close(socket);
 }
 
