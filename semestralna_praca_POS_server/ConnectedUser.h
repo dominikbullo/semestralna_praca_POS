@@ -48,13 +48,16 @@ public:
         return contacts;
     };
 
+    inline vector<string>* getMessages() {
+        return messages;
+    };
 
 private:
     int socket;
     string username;
     string password;
     vector<string>* contacts;
-
+    vector<string>* messages;
 };
 
 #endif /* CONNECTEDUSER_H */

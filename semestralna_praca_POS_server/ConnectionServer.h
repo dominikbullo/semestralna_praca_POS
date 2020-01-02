@@ -27,6 +27,7 @@ public:
     void controlUser(int socket);
     bool registerUser(vector<string> parsedMsg);
     int loginUser(vector<string> parsedMsg, int socket);
+    bool sendMsg(vector<string> parsedMsg, ConnectedUser* user);
 
 private:
     vector<ConnectedUser*> * allUsers;
