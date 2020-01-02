@@ -32,10 +32,11 @@ ConnectionServer::ConnectionServer() {
 
     // priradenie adresy socketu (aj s overením)
     // pokúsim sa 10 krát bindovať socker
+    int binded;
     for (int a = 0; a < 10; a++) {
-        int binded = bind(sockfd, (struct sockaddr*) &serv_addr, sizeof (serv_addr));
-        if (binded < 0) {
-            return;
+        binded = bind(sockfd, (struct sockaddr*) &serv_addr, sizeof (serv_addr));
+        if (binded == 0) {
+            break;
         } else {
             perror("Error! - cannot bind adresss");
             cout << "Trying again" << endl;
