@@ -24,10 +24,6 @@ public:
         }
     };
 
-    inline void spliter(const string& s, vector<string>* parsedMsg) {
-
-    }
-
     virtual ~MessageReader() {
     };
 

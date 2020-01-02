@@ -27,19 +27,17 @@ ConnectionServer::ConnectionServer() {
     //tvorba samotného socketu "sockfd"
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
-    //priradenie adresy socketu (aj s overením)
-    if (bind(sockfd, (struct sockaddr*) &serv_addr, sizeof (serv_addr)) < 0) {
-        perror("Error! - cannot bind adresss");
-        perror("Error! - cannot bind adresss");
-        perror("Error! - cannot bind adresss");
-        perror("Error! - cannot bind adresss");
-        perror("Error! - cannot bind adresss");
-        perror("Error! - cannot bind adresss");
-        perror("Error! - cannot bind adresss");
-        perror("Error! - cannot bind adresss");
-        perror("Error! - cannot bind adresss");
+    // priradenie adresy socketu (aj s overením)
+    // pokúsim sa 10 krát bindovať socker
+    for (int a = 0; a < 10; a++) {
+        int binded = bind(sockfd, (struct sockaddr*) &serv_addr, sizeof (serv_addr));
+        if (binded < 0) {
+            return;
+        } else {
+            perror("Error! - cannot bind adresss");
+            cout << "Trying again" << endl;
+        }
     }
-
 
     //umožníme pripojenie klienta na socket "sockfd",
     //druhý parameter je dĺžka fronty na pripojenie k "sockfd"
@@ -49,11 +47,11 @@ ConnectionServer::ConnectionServer() {
     cout << "SERVER initialized SUCCESSFUL" << endl;
 
     // Creating new thread for every new user
-    // Could youse thread pool...but..
+    // Could ouse thread pool...but..
     vector<thread> *threads = new vector<thread>();
 
     while (true) {
-        cout << "Waiting for socket" << endl;
+        cout << "Waiting for socket..." << endl;
         newsockfd = accept(sockfd, (struct sockaddr*) &cli_addr, &cli_len);
 
         thread t(&ConnectionServer::controlUser, this, newsockfd);
@@ -67,7 +65,8 @@ ConnectionServer::ConnectionServer() {
 }
 
 void ConnectionServer::controlUser(int socket) {
-     cout << "control user on socket " << socket << endl;
+    cout << "Control user on socket " << socket << endl;
+    
     ConnectedUser* user;
 
     char buffer[256];
@@ -97,7 +96,8 @@ void ConnectionServer::controlUser(int socket) {
 
         // parser spravy 
         messageReader->readMsg(parsedMsg, string(buffer)); //zavoal parsovac spravy
-
+        
+        // vypis spravu
         cout << endl << parsedMsg->at(1) << " " << parsedMsg->at(2) << endl;
 
         switch (stoi(parsedMsg->at(0))) {
