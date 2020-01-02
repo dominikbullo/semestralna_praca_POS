@@ -8,6 +8,9 @@ ConnectionClient::ConnectionClient() {
     struct sockaddr_in serv_addr;
     struct hostent* server;
 
+    messages = new vector<vector<string>* >();
+    requests = new vector<string>();
+    
     server = gethostbyname("localhost");
 
     bzero((char*) &serv_addr, sizeof (serv_addr));
@@ -20,7 +23,7 @@ ConnectionClient::ConnectionClient() {
             );
     //ako druhý parameter zadávame číslo portu
 
-    serv_addr.sin_port = htons(20045);
+    serv_addr.sin_port = htons(20048);
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -44,14 +47,14 @@ ConnectionClient::ConnectionClient() {
 }
 
 void ConnectionClient::reader() {
-    char buffer2[256];
+    char buffer[256];
     vector<string>* parsMsg = new vector<string>();
     int n;
     while (!end) {
         parsMsg->clear();
-        n = read(sockfd, buffer2, 255);
-        messReader->readMsg(parsMsg, string(buffer2));
-        cout <<  "reader switch " << parsMsg->at(0) << " " << parsMsg->at(1) << endl;
+        n = read(sockfd, buffer, 255);
+        messReader->readMsg(parsMsg, string(buffer));
+        // cout << "reader switch " << parsMsg->at(0) << " " << parsMsg->at(1) << endl;
         switch (stoi(parsMsg->at(0))) {
             case 0:
             {
@@ -93,9 +96,6 @@ void ConnectionClient::reader() {
 int ConnectionClient::menu() {
     int option;
     if (logged) {
-        int n;
-
-        const char* buffer;
         cout << "Welcome to Chat room" << endl;
         cout << "\t1. Send message." << endl;
         cout << "\t2. Show contacts." << endl;
@@ -105,11 +105,11 @@ int ConnectionClient::menu() {
         cout << "\t6. Delete account." << endl;
         cout << "\t10. CLOSE" << endl << endl << endl;
         cout << "SPRAVY:" << endl;
-//        for (int i = 0; i < messages->size(); i++) {
-//            cout << (*messages)[i]->at(2) << ": " << (*messages)[i]->at(1) << endl;
-//        }
         cout << endl << endl;
 
+        for (int i = 0; i < messages->size(); i++) {
+            cout << (*messages)[i]->at(2) << ": " << (*messages)[i]->at(1) << endl;
+        }
         do {
             cin >> option;
             cin.clear();
@@ -118,93 +118,7 @@ int ConnectionClient::menu() {
                 break;
             }
         } while (true);
-        char buffer2[256];
-        switch (option) {
-            case 1:
-            {
-                //if (toUser != this->username) {
-                if (sendRequest(3)) {
-
-                } else {
-                    cout << "You can only chat with your contacts" << endl;
-                }
-
-                //}
-                break;
-            }
-            case 2:
-            {
-                sendRequest(4);
-                break;
-            }
-            case 3:
-            {
-                string msg;
-                string username;
-                cout << "Enter username: " << endl;
-                cin >> username;
-                msg = "4;" + username;
-                buffer = &msg[0u];
-                n = write(sockfd, buffer, 255);
-
-
-
-                break;
-            }
-            case 4:
-            {
-                string msg;
-                string username;
-                getContacts();
-                cout << "Enter username to delete user from contacts:" << endl;
-                cin >> username;
-                msg = "2;" + username;
-                buffer = &msg[0u];
-                n = write(sockfd, buffer, 255);
-                cin.clear();
-                cin.ignore(1000, '\n');
-                break;
-
-            }
-            case 5:
-            {
-                int answer;
-                string msg;
-                cout << "0 or other number - decline " << endl << "1 - accept" << endl;
-                int i;
-                for (i = 0; i < requests->size(); i++) {
-                    cout << requests->at(i) << endl;
-                    cin >> answer;
-                    if (answer == 1) {
-                        msg = "6;" + requests->at(i);
-                        buffer = &msg[0u];
-                        n = write(sockfd, buffer, 255); //pošle serveru správu uloženú v bufferi
-                    }
-                }
-                if (i == 0)
-                    cout << "no requests" << endl;
-                requests->clear();
-                break;
-            }
-            case 6:
-            {
-                string msg;
-                msg = "8;";
-                buffer = &msg[0u];
-                n = write(sockfd, buffer, 255);
-                logged = false;
-                break;
-            }
-            case 10:
-            {
-                string msg;
-                msg = "7;";
-                buffer = &msg[0u];
-                n = write(sockfd, buffer, 255);
-                logged = false;
-                break;
-            }
-        }
+        option += 2;
     } else {
         cout << "Welcome to Chat room" << endl;
         cout << "\t1. to Sign Up." << endl;
@@ -218,61 +132,20 @@ int ConnectionClient::menu() {
                 break;
             }
         } while (true);
-        switch (option) {
-            case 1:
-                if (sendRequest(option)) {
-                    cout << "\nRegistration successful\n\n";
-                    //printf("\033[H\033[J");
-                } else {
-                cout << "Username already exists\n";
-                }
-                break;
-            case 2:
-                if (sendRequest(option)) {
-                    logged = true;
-                    cout << "Log-in successful\n";
-                    //printf("\033[H\033[J");
-                } else {
-                    cout << "Wrong details\n";
-                }
-                break;
-            case 10:
-            {
-                int n;
-                const char* buffer;
-                string msg;
-                msg = "10;";
-                buffer = &msg[0u];
-                n = write(sockfd, buffer, 255);
-                end = true;
-                break;
-            }
-        }
     }
-
+    sendRequest(option);
     return 0;
 }
 
-void ConnectionClient::getContacts() {
-    const char* buffer;
-    int n;
-    buffer = "5;";
-    n = write(sockfd, buffer, 255);
-    unique_lock<mutex> lk(mtx);
-
-    cv.wait(lk);
-
-    lk.unlock();
-
-}
-
-bool ConnectionClient::sendRequest(int option) {
+bool ConnectionClient::sendRequest(int option_switch) {
     string toUser;
     string msg = "";
     string username = "errorName";
     string password = "errorPasswd";
-    string message;
-    switch (option) {
+    string sendMessage;
+    string option = to_string(option_switch);
+    bool response;
+    switch (option_switch) {
         case 1:
             cout << "\nEnter a new username:\n";
 
@@ -285,7 +158,10 @@ bool ConnectionClient::sendRequest(int option) {
             cin >> password;
             cin.clear();
             cin.ignore(10000, '\n');
-            msg = to_string(option) + ";" + username + ";" + password;
+            msg = option + ";" + username + ";" + password;
+            if (!responseFromServer(msg)) {
+                cout << "\nWrong login name or password\n" << endl;
+            }
             break;
         case 2:
             cout << "\nEnter a username:\n";
@@ -299,15 +175,33 @@ bool ConnectionClient::sendRequest(int option) {
             cin >> password;
             cin.clear();
             cin.ignore(10000, '\n');
-            msg = to_string(option) + ";" + username + ";" + password;
+            msg = option + ";" + username + ";" + password;
+            if (!responseFromServer(msg)) {
+                cout << "\nWrong login name or password\n" << endl;
+            } else {
+                this->username = username;
+                cout << this->username << endl;
+                this->logged = true;
+            }
             break;
         case 3:
-            cout << "Enter username of message reciever: " << endl;
+            cout << "Enter username of message receiver: " << endl;
             cin >> toUser;
             if (toUser != this->username) {
                 cout << "\nPlease enter a your message:\n";
-                cin >> message;
-                msg = option + ";" + username + ";" + message + ";" + this->username;
+                cin >> sendMessage;
+                // TODO ignore string after whitespace
+                msg = option + ";" + toUser + ";" + sendMessage + ";" + this->username;
+            } else {
+                cout << "\nYou can`t send message to yourself\n" << endl;
+                // TODO remove
+                cout << "\nPlease enter a your message:\n"; //
+                cin >> sendMessage; //
+                msg = option + ";" + toUser + ";" + sendMessage + ";" + this->username; //
+                //break;
+            }
+            if (!responseFromServer(msg)) {
+                cout << "\nThe user is not in contact\n" << endl;
             }
             break;
         case 4:
@@ -324,12 +218,14 @@ bool ConnectionClient::sendRequest(int option) {
             break;
         case 10:
             end = true;
-            msg = option;
             break;
         default:
             cout << "\n404\n";
             break;
     }
+}
+
+bool ConnectionClient::responseFromServer(string msg) {
     sendToServer(msg);
 
     unique_lock<mutex> lk(mtx);
@@ -337,6 +233,8 @@ bool ConnectionClient::sendRequest(int option) {
     cv.wait(lk);
 
     lk.unlock();
+    // TODO remove
+    cout << string(response) << endl;
     if (string(response).compare("T") == 0) {
         return true;
     }
@@ -344,6 +242,7 @@ bool ConnectionClient::sendRequest(int option) {
 }
 
 void ConnectionClient::sendToServer(string message) {
+    // TODO remove
     cout << message << endl;
     char* buffer = &message[0u];
     int any = write(sockfd, buffer, 255);
