@@ -28,3 +28,19 @@ void MessageHandler::readMsg(vector<string>* vecMsg, string msg) {
         }
     }
 }
+
+bool MessageHandler::isUserAuthentificated(vector<string>* vecMsg) {
+    int userIsAuthentificated = -1;
+    try {
+        userIsAuthentificated = stoi(vecMsg->at(0));
+        if (userIsAuthentificated != 1) {
+            cout << "Not authentificated" << endl;
+            return false;
+        }
+    } catch (const std::exception& e) {
+        cout << "I cannot determine whether a user is authenticated or not" << endl;
+        cerr << e.what();
+        return false;
+    }
+    return true;
+}

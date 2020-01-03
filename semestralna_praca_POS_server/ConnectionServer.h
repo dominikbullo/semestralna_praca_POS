@@ -13,7 +13,7 @@
 #include <mutex>
 
 #include "ConnectedUser.h"
-#include "MessageReader.h"
+#include "MessageHandler.h"
 
 #ifndef SERVERCONNECTION_H
 #define SERVERCONNECTION_H
@@ -23,16 +23,23 @@ using namespace std;
 class ConnectionServer {
 public:
     ConnectionServer();
-    virtual ~ConnectionServer();
     void controlUser(int socket);
     bool registerUser(vector<string> parsedMsg);
     int loginUser(vector<string> parsedMsg, int socket);
     bool sendMsg(vector<string> parsedMsg, ConnectedUser* user);
+    void addToContacts(vector<string> parsedMsg, ConnectedUser* user);
+    void deleteFromContacts(vector<string> parsedMsg, ConnectedUser* user);
+
+    inline virtual ~ConnectionServer() {
+        delete[] onlineUsers;
+        delete allUsers;
+        delete messageReader;
+    };
 
 private:
     vector<ConnectedUser*> * allUsers;
     vector<ConnectedUser*> * onlineUsers;
-    MessageReader* messageReader;
+    MessageHandler* messageReader;
     mutex mtx;
 };
 

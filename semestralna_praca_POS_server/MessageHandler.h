@@ -18,6 +18,8 @@ public:
 
     void readMsg(vector<string>* vecMsg, string msg);
     void printMsg(vector<string>* vecMsg);
+    bool isUserAuthentificated(vector<string>* vecMsg);
+
 
 private:
 };
