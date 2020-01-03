@@ -26,9 +26,9 @@ public:
     bool sendRequest(int option);
     bool userRegister();
     bool userLogin();
+    bool responseFromServer(string msg);
     ConnectionClient(const ConnectionClient& orig);
     int menu();
-    void getContacts();
     void sendToServer(string message);
     void reader();
     virtual ~ConnectionClient() {
