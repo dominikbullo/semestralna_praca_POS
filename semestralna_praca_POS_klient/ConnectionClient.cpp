@@ -10,7 +10,7 @@ ConnectionClient::ConnectionClient() {
 
     messages = new vector<vector<string>* >();
     requests = new vector<string>();
-    
+
     server = gethostbyname("localhost");
 
     bzero((char*) &serv_addr, sizeof (serv_addr));
@@ -36,8 +36,7 @@ ConnectionClient::ConnectionClient() {
     thread t(&ConnectionClient::reader, this);
     logged = false;
     while (true) {
-        //sendMessage();
-        if (end) {
+        if (this->end) {
             break;
         }
         menu();
@@ -50,11 +49,10 @@ void ConnectionClient::reader() {
     char buffer[256];
     vector<string>* parsMsg = new vector<string>();
     int n;
-    while (!end) {
+    while (!this->end) {
         parsMsg->clear();
         n = read(sockfd, buffer, 255);
         messReader->readMsg(parsMsg, string(buffer));
-        // cout << "reader switch " << parsMsg->at(0) << " " << parsMsg->at(1) << endl;
         switch (stoi(parsMsg->at(0))) {
             case 0:
             {
@@ -85,8 +83,8 @@ void ConnectionClient::reader() {
                 break;
 
             case 10:
-                end = true;
-                // cv.notify_all();
+                this->end = true;
+                cv.notify_all();
                 break;
         }
     }
@@ -104,7 +102,9 @@ int ConnectionClient::menu() {
         cout << "\t5. Check friend requests." << endl;
         cout << "\t6. Delete account." << endl;
         cout << "\t10. CLOSE" << endl << endl << endl;
-        cout << "SPRAVY:" << endl;
+        if (this->messages->size() > 0) {
+            cout << "SPRAVY:" << endl;
+        }
         cout << endl << endl;
 
         for (int i = 0; i < messages->size(); i++) {
@@ -118,7 +118,6 @@ int ConnectionClient::menu() {
                 break;
             }
         } while (true);
-        option += 2;
     } else {
         cout << "Welcome to Chat room" << endl;
         cout << "\t1. to Sign Up." << endl;
@@ -144,84 +143,128 @@ bool ConnectionClient::sendRequest(int option_switch) {
     string password = "errorPasswd";
     string sendMessage;
     string option = to_string(option_switch);
-    bool response;
-    switch (option_switch) {
-        case 1:
-            cout << "\nEnter a new username:\n";
+    int confirmDeleteAccount = 0;
 
-            cin >> username;
-            cin.clear();
-            cin.ignore(10000, '\n');
+    string isLogged = to_string(this->logged);
 
-            cout << "\nPlease enter a new password:\n";
+    if (this->logged) {
+        switch (option_switch) {
+            case 1:
+                cout << "Enter username of message receiver: " << endl;
+                cin >> toUser;
+                if (toUser != this->username) {
+                    cout << endl << "Please enter a your message:" << endl;
+                    cin.ignore(10000, '\n');
+                    cin.clear();
+                    getline(cin, sendMessage);
+                    msg = isLogged + ";" + option + ";" + this->username + ";" + sendMessage + ";" + toUser;
+                } else {
+                    cout << "You can`t send message to yourself" << endl;
+                    // TODO remove
+                    cout << "Please enter a your message:" << endl; //
+                    cin.ignore(10000, '\n');
+                    cin.clear();
+                    getline(cin, sendMessage);
+                    msg = isLogged + ";" + option + ";" + this->username + ";" + sendMessage + ";" + toUser; //
+                    cout << msg << endl;
+                    //break;
+                }
+                if (!responseFromServer(msg)) {
+                    cout << endl << "The user is not in contact" << endl;
+                }
+                break;
+            case 2:
+                msg = isLogged + ";" + option + ";" + this->username;
+                responseFromServer(msg);
+                // show contact
+                break;
+            case 3:
+                cout << "Enter username - add contact:" << endl;
+                cin.ignore();
+                getline(cin, username);
+                cout << username << endl;
+                msg = isLogged + ";" + option + ";" + this->username + ";" + username;
+                cout << msg << endl;
+                responseFromServer(msg);
+                break;
+            case 4:
+                cout << "Enter username:" << endl;
+                cin.ignore(10000, '\n');
+                cin.clear();
+                getline(cin, username);
+                msg = isLogged + ";" + option + ";" + this->username + ";" + username;
+                responseFromServer(msg);
+                break;
+            case 5:
+                // confirm new contact
+                break;
+            case 6:
+                cout << "Are you sure?" << endl;
+                cin.ignore(10000, '\n');
+                cin.clear();
+                cin >> confirmDeleteAccount;
+                if (confirmDeleteAccount == 1) {
+                    msg = isLogged + ";" + option + ";" + this->username;
+                    responseFromServer(msg);
+                }
+                break;
+            case 10:
+                msg = isLogged + ";" + option + ";" + this->username;
+                this->logged = false;
+                responseFromServer(msg);
+                break;
+            default:
+                cout << "404" << endl;
+                break;
+        }
+    } else {
+        switch (option_switch) {
+            case 1:
+                cout << endl << "Enter a new username:" << endl;
 
-            cin >> password;
-            cin.clear();
-            cin.ignore(10000, '\n');
-            msg = option + ";" + username + ";" + password;
-            if (!responseFromServer(msg)) {
-                cout << "\nWrong login name or password\n" << endl;
-            }
-            break;
-        case 2:
-            cout << "\nEnter a username:\n";
+                cin >> username;
+                cin.clear();
+                cin.ignore(10000, '\n');
 
-            cin >> username;
-            cin.clear();
-            cin.ignore(10000, '\n');
+                cout << endl << "Please enter a new password:" << endl;
 
-            cout << "\nPlease enter a password:\n";
+                cin >> password;
+                cin.clear();
+                cin.ignore(10000, '\n');
+                msg = isLogged + ";" + option + ";" + username + ";" + password;
+                if (!responseFromServer(msg)) {
+                    cout << endl << "Wrong login name or password" << endl;
+                }
+                break;
+            case 2:
+                cout << endl << "Enter a username:" << endl;
+                cin >> username;
+                cin.clear();
+                cin.ignore(10000, '\n');
 
-            cin >> password;
-            cin.clear();
-            cin.ignore(10000, '\n');
-            msg = option + ";" + username + ";" + password;
-            if (!responseFromServer(msg)) {
-                cout << "\nWrong login name or password\n" << endl;
-            } else {
-                this->username = username;
-                cout << this->username << endl;
-                this->logged = true;
-            }
-            break;
-        case 3:
-            cout << "Enter username of message receiver: " << endl;
-            cin >> toUser;
-            if (toUser != this->username) {
-                cout << "\nPlease enter a your message:\n";
-                cin >> sendMessage;
-                // TODO ignore string after whitespace
-                msg = option + ";" + toUser + ";" + sendMessage + ";" + this->username;
-            } else {
-                cout << "\nYou can`t send message to yourself\n" << endl;
-                // TODO remove
-                cout << "\nPlease enter a your message:\n"; //
-                cin >> sendMessage; //
-                msg = option + ";" + toUser + ";" + sendMessage + ";" + this->username; //
-                //break;
-            }
-            if (!responseFromServer(msg)) {
-                cout << "\nThe user is not in contact\n" << endl;
-            }
-            break;
-        case 4:
-            cout << "Enter username: " << endl;
-            cin >> username;
-            msg = option;
-            // show contact
-            break;
-        case 5:
-            // add contact
-            break;
-        case 6:
-            // delete contact
-            break;
-        case 10:
-            end = true;
-            break;
-        default:
-            cout << "\n404\n";
-            break;
+                cout << endl << "Please enter a password:" << endl;
+
+                cin >> password;
+                cin.clear();
+                cin.ignore(10000, '\n');
+                msg = isLogged + ";" + option + ";" + username + ";" + password;
+                if (!responseFromServer(msg)) {
+                    cout << endl << "Wrong login name or password" << endl;
+                } else {
+                    this->username = username;
+                    cout << this->username << endl;
+                    this->logged = true;
+                }
+                break;
+            case 10:
+                msg = isLogged + ";" + option + ";" + this->username;
+                this->end = true;
+                responseFromServer(msg);
+                break;
+            default:
+                cout << "404" << endl;
+                break;
+        }
     }
 }
 
