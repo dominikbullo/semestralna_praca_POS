@@ -1,31 +1,23 @@
 #include <string>
 #include <vector>
+#include <iostream>
 
 #ifndef MESSAGEREADER_H
 #define MESSAGEREADER_H
 
 using namespace std;
 
-class MessageReader {
+class MessageHandler {
 public:
 
-    MessageReader() {
+    MessageHandler() {
     };
 
-    inline void readMsg(vector<string>* vecMsg, string msg) {
-        string::size_type i = 0;
-        string::size_type j = msg.find(';');
-        while (j != string::npos) {
-            vecMsg->push_back(msg.substr(i, j - i));
-            i = ++j;
-            j = msg.find(';', j);
-            if (j == string::npos)
-                vecMsg->push_back(msg.substr(i, msg.length()));
-        }
+    virtual ~MessageHandler() {
     };
 
-    virtual ~MessageReader() {
-    };
+    void readMsg(vector<string>* vecMsg, string msg);
+    void printMsg(vector<string>* vecMsg);
 
 private:
 };
