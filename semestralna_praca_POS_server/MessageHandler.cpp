@@ -3,6 +3,8 @@
 using namespace std;
 
 const string delim = ";";
+const char *MSSG_TRUE = "0;T";
+const char *MSSG_FALSE = "0;F";
 
 void MessageHandler::printMsg(vector<string>* parsedMsg) {
     int counter = 1;
@@ -16,7 +18,6 @@ void MessageHandler::printMsg(vector<string>* parsedMsg) {
 }
 
 string MessageHandler::createMsg(vector<string>* responseMsg) {
-    cout << "Creating msg" << endl;
     string msg;
 
     for (vector<string>::const_iterator p = responseMsg->begin();
@@ -57,4 +58,20 @@ bool MessageHandler::isUserAuthentificated(vector<string>* parsedMsg) {
         return false;
     }
     return true;
+}
+
+void MessageHandler::sendMsg(int socket, string msg) {
+    cout << "Sending response " << msg << " on socket " << socket << endl;
+    const char *msgToSocket = msg.c_str();
+    int n = write(socket, msgToSocket, strlen(msgToSocket) + 1);
+}
+
+void MessageHandler::sendMsg(int socket, const char * msg) {
+    cout << "Sending response " << msg << " on socket " << socket << endl;
+    int n = write(socket, msg, strlen(msg) + 1);
+}
+
+void MessageHandler::sendTrue(int socket) {
+     cout << "Sending TRUE" << endl;
+    MessageHandler::sendMsg(socket, MSSG_TRUE);
 }

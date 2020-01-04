@@ -13,9 +13,6 @@
 #define DELETE_C 4
 #define OFFLINE 10
 
-const char *MSSG_TRUE = "0;T";
-const char *MSSG_FALSE = "0;F";
-
 using namespace std;
 
 ConnectionServer::ConnectionServer() {
@@ -90,19 +87,16 @@ void ConnectionServer::controlUser(int socket) {
 
     char buffer[256];
     int response;
-    const char* msg = MSSG_FALSE;
     int pozicia = -1;
     int n;
 
     vector<string>* parsedMsg = new vector<string>();
 
     while (true) {
-        bool isMessageAuthentificated = false;
         int msgType = -1;
         string msgSender = "";
         string msgBody = "";
 
-        msg = MSSG_FALSE;
         parsedMsg->clear();
         //čistí buffer
         bzero(buffer, 256);
@@ -114,32 +108,29 @@ void ConnectionServer::controlUser(int socket) {
         }
 
         // parser spravy 
-        messageReader->readMsg(string(buffer), parsedMsg);
-        isMessageAuthentificated = messageReader->isUserAuthentificated(parsedMsg);
-        messageReader->printMsg(parsedMsg);
-        
-        
+        msgHandler->readMsg(string(buffer), parsedMsg);
+        msgHandler->printMsg(parsedMsg);
+
+        // vypis spravu
+
         // TODO make every message same lenght
         try {
             msgType = stoi(parsedMsg->at(1));
             msgSender = parsedMsg->at(2);
             msgBody = parsedMsg->at(3);
+
+            cout << "Received message type " << to_string(msgType) << endl;
+            cout << endl << msgSender << " " << msgBody << endl << endl;
         } catch (const std::exception& e) {
             cerr << e.what();
         }
 
-        // vypis spravu
-        cout << "Received message type " << to_string(msgType) << endl;
-        cout << endl << msgSender << " " << msgBody << endl << endl;
-
-        if (!isMessageAuthentificated) {
+        if (!msgHandler->isUserAuthentificated(parsedMsg)) {
             switch (msgType) {
                 case REG:
                     // register user
                     cout << "Need to register user" << endl;
-                    if (registerUser(*parsedMsg)) {
-                        msg = MSSG_TRUE;
-                    }
+                    registerUser(*parsedMsg, socket);
                     break;
                 case LOG:
                     // login user
@@ -149,7 +140,6 @@ void ConnectionServer::controlUser(int socket) {
                     if ((i = loginUser(*parsedMsg, socket)) != -1) {
                         pozicia = i;
                         user = allUsers->at(i);
-                        msg = MSSG_TRUE;
                     }
                     break;
                 case EXIT:
@@ -166,9 +156,7 @@ void ConnectionServer::controlUser(int socket) {
                 case SND_MSSG:
                     // received message
                     cout << "Received messsage to user" << endl;
-                    if (sendMsg(*parsedMsg, user)) {
-                        msg = MSSG_TRUE;
-                    }
+                    sendMsg(*parsedMsg, user);
                     break;
                 case SHOW_CL:
                     // show contact
@@ -188,7 +176,7 @@ void ConnectionServer::controlUser(int socket) {
                 case OFFLINE:
                     // make contact offline
                     cout << "Make contact offline" << endl;
-                    
+
                     // TODO range check
                     for (int i = 0; i < onlineUsers->size(); i++) {
                         if ((*onlineUsers)[i]->getUsername() == user->getUsername()) {
@@ -199,16 +187,14 @@ void ConnectionServer::controlUser(int socket) {
                     }
                     user->setSocket(-1);
                     user = nullptr;
-                    msg = MSSG_TRUE;
+                    msgHandler->sendTrue(socket);
                     break;
                 default:
                     cout << "Not implemented yet!" << endl;
                     break;
             }
         }
-
-        cout << "Sending response " << msg << endl;
-        n = write(socket, msg, strlen(msg) + 1); //zasiela správu "msg" klientovi     
+        //zasiela správu "msg" klientovi     
         //        lck.unlock();
     }
 
@@ -228,7 +214,7 @@ void ConnectionServer::controlUser(int socket) {
     close(socket);
 }
 
-bool ConnectionServer::registerUser(vector<string> parsedMsg) {
+void ConnectionServer::registerUser(vector<string> parsedMsg, int socket) {
     string username = parsedMsg.at(2);
     string password = parsedMsg.at(3);
     ConnectedUser * user;
@@ -237,9 +223,13 @@ bool ConnectionServer::registerUser(vector<string> parsedMsg) {
         if (user->getUsername().compare(username) == 0) {
             cout << user->getUsername();
             cout << "Username already exist" << endl;
-            return false;
+
+            vector<string> msg = {"1", "F", "LALALA"};
+            msgHandler->sendMsg(socket, msgHandler->createMsg(&msg));
+            return;
         }
     }
+    cout << "tu som" << endl;
     user = new ConnectedUser();
     user->setUsername(username);
     user->setPassword(password);
@@ -247,7 +237,8 @@ bool ConnectionServer::registerUser(vector<string> parsedMsg) {
     allUsers->push_back(user);
     lck.unlock();
     user = nullptr;
-    return true;
+
+    msgHandler->sendTrue(socket);
 }
 
 int ConnectionServer::loginUser(vector<string> parsedMsg, int socket) {
@@ -269,9 +260,13 @@ int ConnectionServer::loginUser(vector<string> parsedMsg, int socket) {
                 //                cout << "socket nastavený na " << a->getSocket() << endl;
                 //                cout << "push into online users" << endl;
                 //                cout << "return (position?)" << i << endl;
+                msgHandler->sendTrue(socket);
                 return i;
             } else {
                 //                cout << "return bcs sck is not -1" << endl;
+                
+                vector<string> msg = {"1", "F", "LALALA"};
+                msgHandler->sendMsg(socket, msgHandler->createMsg(&msg));                
                 return -1;
             }
         }
@@ -280,7 +275,7 @@ int ConnectionServer::loginUser(vector<string> parsedMsg, int socket) {
     return -1;
 }
 
-bool ConnectionServer::sendMsg(vector<string> parsedMsg, ConnectedUser * user) {
+void ConnectionServer::sendMsg(vector<string> parsedMsg, ConnectedUser * user) {
     ConnectedUser* toUser = nullptr;
 
     int socket;
@@ -315,7 +310,9 @@ bool ConnectionServer::sendMsg(vector<string> parsedMsg, ConnectedUser * user) {
 
     if (toUser == nullptr) {
         cout << "User " << user->getUsername() << " not found in contact list" << endl;
-        return false;
+
+        vector<string> msg = {"1", "F", "LALALA"};
+        msgHandler->sendMsg(user->getSocket(), msgHandler->createMsg(&msg));
     }
 
     socket = toUser->getSocket();
@@ -334,10 +331,10 @@ bool ConnectionServer::sendMsg(vector<string> parsedMsg, ConnectedUser * user) {
         toUser->getMessages()->push_back(msg);
     }
 
-    return true;
+    msgHandler->sendTrue(user->getSocket());
 }
 
-void ConnectionServer::addToContacts(vector<string> parsedMsg, ConnectedUser* user) {
+void ConnectionServer::addToContacts(vector<string> parsedMsg, ConnectedUser * user) {
     int n;
     vector<string>*contacts = user->getContacts();
     bool flag = false;

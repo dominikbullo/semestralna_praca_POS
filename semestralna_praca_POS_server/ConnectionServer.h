@@ -24,22 +24,22 @@ class ConnectionServer {
 public:
     ConnectionServer();
     void controlUser(int socket);
-    bool registerUser(vector<string> parsedMsg);
+    void registerUser(vector<string> parsedMsg, int socket);
     int loginUser(vector<string> parsedMsg, int socket);
-    bool sendMsg(vector<string> parsedMsg, ConnectedUser* user);
+    void sendMsg(vector<string> parsedMsg, ConnectedUser* user);
     void addToContacts(vector<string> parsedMsg, ConnectedUser* user);
     void deleteFromContacts(vector<string> parsedMsg, ConnectedUser* user);
 
     inline virtual ~ConnectionServer() {
         delete[] onlineUsers;
         delete allUsers;
-        delete messageReader;
+        delete msgHandler;
     };
 
 private:
     vector<ConnectedUser*> * allUsers;
     vector<ConnectedUser*> * onlineUsers;
-    MessageHandler* messageReader;
+    MessageHandler* msgHandler;
     mutex mtx;
 };
 
