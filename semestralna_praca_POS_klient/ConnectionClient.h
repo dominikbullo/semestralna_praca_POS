@@ -24,13 +24,12 @@ class ConnectionClient {
 public:
     ConnectionClient();
     bool sendRequest(int option);
-    bool userRegister();
-    bool userLogin();
     bool responseFromServer(string msg);
+    void checkNews();
     ConnectionClient(const ConnectionClient& orig);
     int menu();
     void sendToServer(string message);
-    void reader();
+    void readResponse();
     virtual ~ConnectionClient() {
         delete requests;
         for(auto a : *messages){

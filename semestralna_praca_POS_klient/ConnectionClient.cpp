@@ -8,8 +8,8 @@ ConnectionClient::ConnectionClient() {
     struct sockaddr_in serv_addr;
     struct hostent* server;
 
-    messages = new vector<vector<string>* >();
-    requests = new vector<string>();
+    this->messages = new vector<vector<string>* >();
+    this->requests = new vector<string>();
 
     server = gethostbyname("localhost");
 
@@ -23,7 +23,7 @@ ConnectionClient::ConnectionClient() {
             );
     //ako druhý parameter zadávame číslo portu
 
-    serv_addr.sin_port = htons(20048);
+    serv_addr.sin_port = htons(20049);
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -33,7 +33,7 @@ ConnectionClient::ConnectionClient() {
         perror("ERROR!!!");
     }
 
-    thread t(&ConnectionClient::reader, this);
+    thread t(&ConnectionClient::readResponse, this);
     logged = false;
     while (true) {
         if (this->end) {
@@ -45,43 +45,66 @@ ConnectionClient::ConnectionClient() {
     delete server;
 }
 
-void ConnectionClient::reader() {
+void ConnectionClient::readResponse() {
     char buffer[256];
     vector<string>* parsMsg = new vector<string>();
     int n;
     while (!this->end) {
         parsMsg->clear();
-        n = read(sockfd, buffer, 255);
-        messReader->readMsg(parsMsg, string(buffer));
+        n = read(this->sockfd, buffer, 255);
+        cout << string (buffer) << endl;
+        this->messReader->readMsg(parsMsg, string(buffer));
+        cout << parsMsg->at(0) << endl;
         switch (stoi(parsMsg->at(0))) {
             case 0:
             {
-                response = parsMsg->at(1);
+                cout << "case 0" << endl;
+                this->response = parsMsg->at(1);
+                cout << this->response << endl;
                 cv.notify_all();
+                
+                try {
+                    if (this->response == "F") {
+                        cout << parsMsg->at(2) << endl;
+                    }
+                } catch (const std::exception& e) {
+                    cerr << e.what() << endl;
+                }
+
+                try {
+                    if (this->response == "T") {
+                        cout << parsMsg->at(2) << endl;
+                    }
+                } catch (const std::exception& e) {
+                    cerr << e.what() << endl;
+                }
+
                 break;
             }
             case 1:
             {
                 vector<string>* vec = new vector<string>(*parsMsg);
-                messages->push_back(vec);
+                this->messages->push_back(vec);
                 break;
             }
             case 2:
             {
-                cout << endl << "CONTACTS:" << endl;
-                for (int i = 1; i < parsMsg->size(); i++) {
-                    if (parsMsg->at(i) != "") {
-                        cout << i << "." << parsMsg->at(i) << endl;
+                cout << endl << "Contact list:" << endl;
+                if (parsMsg->at(1) == "F") {
+                    cout << parsMsg->at(2) << endl;
+                } else {
+                    for (int i = 1; i < parsMsg->size(); i++) {
+                        if (parsMsg->at(i) != "") {
+                            cout << i << ". " << parsMsg->at(i) << endl;
+                        }
                     }
-
                 }
                 cv.notify_all();
                 break;
             }
             case 3:
-                requests->push_back(parsMsg->at(1));
+                this->requests->push_back(parsMsg->at(2));
                 break;
-
             case 10:
                 this->end = true;
                 cv.notify_all();
@@ -101,15 +124,31 @@ int ConnectionClient::menu() {
         cout << "\t4. Delete user from contacts." << endl;
         cout << "\t5. Check friend requests." << endl;
         cout << "\t6. Delete account." << endl;
-        cout << "\t10. CLOSE" << endl << endl << endl;
+        cout << "\t10. SIGN OUT" << endl << endl << endl;
         if (this->messages->size() > 0) {
-            cout << "SPRAVY:" << endl;
+            cout << "MESSAGES:" << endl;
         }
-        cout << endl << endl;
 
-        for (int i = 0; i < messages->size(); i++) {
-            cout << (*messages)[i]->at(2) << ": " << (*messages)[i]->at(1) << endl;
+        try {
+            for (int i = 0; i < this->messages->size(); i++) {
+                cout << (*this->messages)[i]->at(2) << ": " << (*this->messages)[i]->at(3) << endl;
+            }
+        } catch (const std::exception& e) {
+            cerr << e.what() << endl;
         }
+
+        if (this->requests->size() > 0) {
+            cout << "FRIEND REQUESTS:" << endl;
+        }
+
+        try {
+            for (int i = 0; i < this->requests->size(); i++) {
+                cout << this->requests->at(i) << endl;
+            }
+        } catch (const std::exception& e) {
+            cerr << e.what() << endl;
+        }
+
         do {
             cin >> option;
             cin.clear();
@@ -134,6 +173,10 @@ int ConnectionClient::menu() {
     }
     sendRequest(option);
     return 0;
+}
+
+void ConnectionClient::checkNews() {
+
 }
 
 bool ConnectionClient::sendRequest(int option_switch) {
@@ -169,22 +212,18 @@ bool ConnectionClient::sendRequest(int option_switch) {
                     cout << msg << endl;
                     //break;
                 }
-                if (!responseFromServer(msg)) {
-                    cout << endl << "The user is not in contact" << endl;
-                }
+                responseFromServer(msg);
                 break;
             case 2:
+                // show contact
                 msg = isLogged + ";" + option + ";" + this->username;
                 responseFromServer(msg);
-                // show contact
                 break;
             case 3:
                 cout << "Enter username - add contact:" << endl;
-                cin.ignore();
                 getline(cin, username);
                 cout << username << endl;
-                msg = isLogged + ";" + option + ";" + this->username + ";" + username;
-                cout << msg << endl;
+                msg = isLogged + ";" + option + ";" + username;
                 responseFromServer(msg);
                 break;
             case 4:
@@ -232,9 +271,7 @@ bool ConnectionClient::sendRequest(int option_switch) {
                 cin.clear();
                 cin.ignore(10000, '\n');
                 msg = isLogged + ";" + option + ";" + username + ";" + password;
-                if (!responseFromServer(msg)) {
-                    cout << endl << "Wrong login name or password" << endl;
-                }
+                responseFromServer(msg);
                 break;
             case 2:
                 cout << endl << "Enter a username:" << endl;
@@ -248,9 +285,7 @@ bool ConnectionClient::sendRequest(int option_switch) {
                 cin.clear();
                 cin.ignore(10000, '\n');
                 msg = isLogged + ";" + option + ";" + username + ";" + password;
-                if (!responseFromServer(msg)) {
-                    cout << endl << "Wrong login name or password" << endl;
-                } else {
+                if (responseFromServer(msg)) {
                     this->username = username;
                     cout << this->username << endl;
                     this->logged = true;
@@ -270,12 +305,6 @@ bool ConnectionClient::sendRequest(int option_switch) {
 
 bool ConnectionClient::responseFromServer(string msg) {
     sendToServer(msg);
-
-    unique_lock<mutex> lk(mtx);
-
-    cv.wait(lk);
-
-    lk.unlock();
     // TODO remove
     cout << string(response) << endl;
     if (string(response).compare("T") == 0) {
@@ -289,6 +318,12 @@ void ConnectionClient::sendToServer(string message) {
     cout << message << endl;
     char* buffer = &message[0u];
     int any = write(sockfd, buffer, 255);
+
+    unique_lock<mutex> lk(this->mtx);
+
+    this->cv.wait(lk);
+
+    lk.unlock();
 }
 
 ConnectionClient::ConnectionClient(const ConnectionClient& orig) {
