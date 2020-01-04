@@ -114,7 +114,7 @@ void ConnectionServer::controlUser(int socket) {
         }
 
         // parser spravy 
-        messageReader->readMsg(parsedMsg, string(buffer));
+        messageReader->readMsg(string(buffer), parsedMsg);
         isMessageAuthentificated = messageReader->isUserAuthentificated(parsedMsg);
         messageReader->printMsg(parsedMsg);
         
