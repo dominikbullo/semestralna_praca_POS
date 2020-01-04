@@ -18,7 +18,12 @@ using namespace std;
 class MessageHandler {
 public:
 
-    MessageHandler() {
+    inline MessageHandler() {
+        vector<string> msgTrue = {"0", "T"};
+        this->MSG_TRUE = this->createMsg(&msgTrue);
+
+        vector<string> msgFalse = {"0", "F"};
+        this->MSG_FALSE = this->createMsg(&msgFalse);
     };
 
     virtual ~MessageHandler() {
@@ -27,14 +32,20 @@ public:
     string createMsg(vector<string>* responseMsg);
     void readMsg(string stringMsg, vector<string>* parsedMsg);
     void printMsg(vector<string>* vecMsg);
+
     void sendMsg(int socket, string msg);
     void sendMsg(int socket, const char * msg);
+
     void sendTrue(int socket);
+
+    void sendTrue(int socket, string additionalInfo);
+    void sendFalse(int socket, string additionalInfo);
 
     bool isUserAuthentificated(vector<string>* vecMsg);
 
-
 private:
+    string MSG_TRUE;
+    string MSG_FALSE;
 };
 
 #endif /* MESSAGEREADER_H */

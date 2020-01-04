@@ -1,10 +1,11 @@
 #include "ConnectionServer.h"
 
+#define PORT 20049 
+
 // For non-authentificated users
 #define REG 1
 #define LOG 2
 #define EXIT 10
-
 
 // For authentificated users
 #define SND_MSSG 1
@@ -13,14 +14,24 @@
 #define DELETE_C 4
 #define OFFLINE 10
 
+// For authentificated users
+#define INFO_RESPONSE 0
+#define MSG_RESPONSE 1
+#define CL_RESPONSE 2
+#define FR_RESPONSE 3
+
 using namespace std;
+
+const string TRUE_RESPONSE = "T";
+const string FALSE_RESPONSE = "F";
+int newsockfd;
 
 ConnectionServer::ConnectionServer() {
     // vytvorím si štruktúry
     onlineUsers = new vector<ConnectedUser*>();
     allUsers = new vector<ConnectedUser*>();
 
-    int sockfd, newsockfd, newsockf2;
+    int sockfd, newsockf2;
 
     socklen_t cli_len;
     struct sockaddr_in serv_addr, cli_addr;
@@ -31,7 +42,7 @@ ConnectionServer::ConnectionServer() {
     //nastavenie pre adresovanie v doméne INET
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = INADDR_ANY;
-    serv_addr.sin_port = htons(20048);
+    serv_addr.sin_port = htons(PORT);
 
     //tvorba samotného socketu "sockfd"
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -78,6 +89,9 @@ ConnectionServer::ConnectionServer() {
     for (thread &thread : *threads) {
         thread.join();
     }
+
+    // RES: https://stackoverflow.com/questions/10619952/how-to-completely-destroy-a-socket-connection-in-c
+    close(newsockfd);
 }
 
 void ConnectionServer::controlUser(int socket) {
@@ -91,8 +105,11 @@ void ConnectionServer::controlUser(int socket) {
     int n;
 
     vector<string>* parsedMsg = new vector<string>();
+    vector<string>* responseMsg = new vector<string>();
 
     while (true) {
+        responseMsg->clear();
+
         int msgType = -1;
         string msgSender = "";
         string msgBody = "";
@@ -109,39 +126,47 @@ void ConnectionServer::controlUser(int socket) {
 
         // parser spravy 
         msgHandler->readMsg(string(buffer), parsedMsg);
-        msgHandler->printMsg(parsedMsg);
 
-        // vypis spravu
-
-        // TODO make every message same lenght
         try {
             msgType = stoi(parsedMsg->at(1));
             msgSender = parsedMsg->at(2);
-            msgBody = parsedMsg->at(3);
-
             cout << "Received message type " << to_string(msgType) << endl;
             cout << endl << msgSender << " " << msgBody << endl << endl;
         } catch (const std::exception& e) {
-            cerr << e.what();
+            cerr << e.what() << endl;
         }
-
+        try {
+            msgBody = parsedMsg->at(3);
+        } catch (const std::exception& e) {
+            cerr << e.what() << endl;
+        }
+        //        unique_lock<mutex> lck(mtx);
         if (!msgHandler->isUserAuthentificated(parsedMsg)) {
             switch (msgType) {
                 case REG:
                     // register user
-                    cout << "Need to register user" << endl;
                     registerUser(*parsedMsg, socket);
                     break;
                 case LOG:
+                {
                     // login user
                     cout << "Need to login user" << endl;
                     int i;
-                    cout << "logging user on socket " << socket << endl;
+                    cout << "Logging user on socket " << socket << endl;
                     if ((i = loginUser(*parsedMsg, socket)) != -1) {
                         pozicia = i;
                         user = allUsers->at(i);
+                        //                        char* buffer;
+                        //                        cout << "sending messages" << endl;
+                        //                        for (int j = 0; j < user->getMessages()->size(); j++) {
+                        //                            string saved = user->getMessages()->at(j);
+                        //                            buffer = &saved[0u];
+                        //                            cout << "buffer " << buffer << endl;
+                        //                            n = write(socket, buffer, 255); //pošle serveru správu uloženú v bufferi
+                        //                        }
                     }
                     break;
+                }
                 case EXIT:
                     // login user
                     cout << "Need to offline user" << endl;
@@ -161,7 +186,19 @@ void ConnectionServer::controlUser(int socket) {
                 case SHOW_CL:
                     // show contact
                     cout << "Show conctacts" << endl;
-                    cout << "Not implemented yet!" << endl;
+                    responseMsg->push_back(to_string(CL_RESPONSE));
+
+                    if (user->getContacts()->size() < 1) {
+                        responseMsg->push_back(FALSE_RESPONSE);
+                        responseMsg->push_back("The user has no contacts");
+                    } else {
+                        responseMsg->push_back(TRUE_RESPONSE);
+                        for (int i = 0; i < user->getContacts()->size(); i++) {
+                            cout << "User contacts " << user->getContacts()->at(i) << endl;
+                            responseMsg->push_back(user->getContacts()->at(i));
+                        }
+                    }
+                    msgHandler->sendMsg(socket, msgHandler->createMsg(responseMsg));
                     break;
                 case ADD_C:
                     // add contact
@@ -171,7 +208,7 @@ void ConnectionServer::controlUser(int socket) {
                 case DELETE_C:
                     // delete contact
                     cout << "Delete contact" << endl;
-                    cout << "Not implemented yet!" << endl;
+                    deleteFromContacts(*parsedMsg, user);
                     break;
                 case OFFLINE:
                     // make contact offline
@@ -194,7 +231,6 @@ void ConnectionServer::controlUser(int socket) {
                     break;
             }
         }
-        //zasiela správu "msg" klientovi     
         //        lck.unlock();
     }
 
@@ -215,21 +251,20 @@ void ConnectionServer::controlUser(int socket) {
 }
 
 void ConnectionServer::registerUser(vector<string> parsedMsg, int socket) {
+    cout << "REGISTERING user on socket " << socket << endl;
+
     string username = parsedMsg.at(2);
     string password = parsedMsg.at(3);
+
     ConnectedUser * user;
     bool flag;
     for (ConnectedUser* user : *allUsers) {
         if (user->getUsername().compare(username) == 0) {
             cout << user->getUsername();
-            cout << "Username already exist" << endl;
-
-            vector<string> msg = {"1", "F", "LALALA"};
-            msgHandler->sendMsg(socket, msgHandler->createMsg(&msg));
+            msgHandler->sendFalse(socket, "Username already exist");
             return;
         }
     }
-    cout << "tu som" << endl;
     user = new ConnectedUser();
     user->setUsername(username);
     user->setPassword(password);
@@ -257,21 +292,15 @@ int ConnectionServer::loginUser(vector<string> parsedMsg, int socket) {
                 user->setSocket(socket);
                 onlineUsers->push_back(user);
                 lck.unlock();
-                //                cout << "socket nastavený na " << a->getSocket() << endl;
-                //                cout << "push into online users" << endl;
-                //                cout << "return (position?)" << i << endl;
                 msgHandler->sendTrue(socket);
                 return i;
             } else {
-                //                cout << "return bcs sck is not -1" << endl;
-                
-                vector<string> msg = {"1", "F", "LALALA"};
-                msgHandler->sendMsg(socket, msgHandler->createMsg(&msg));                
+                msgHandler->sendFalse(socket, "Username already connected");
                 return -1;
             }
         }
     }
-    cout << "return end" << endl;
+    msgHandler->sendFalse(socket, "Username and password do not match");
     return -1;
 }
 
@@ -294,13 +323,14 @@ void ConnectionServer::sendMsg(vector<string> parsedMsg, ConnectedUser * user) {
             // TODO DELETE this on production
             toUser = user;
             flag = true;
-            // needs to be in my contacts
-            //            for (int i = 0; i < user->getContacts()->size(); i++) {
-            //                toUser = user;
-            //                flag = true;
-            //                cout << "Found user in your contact list" << endl;
-            //                break;
-            //            }
+
+            // Needs to be in my contacts
+            for (int i = 0; i < user->getContacts()->size(); i++) {
+                toUser = user;
+                flag = true;
+                cout << "Found user in your contact list" << endl;
+                break;
+            }
         }
 
         if (flag) {
@@ -309,25 +339,33 @@ void ConnectionServer::sendMsg(vector<string> parsedMsg, ConnectedUser * user) {
     }
 
     if (toUser == nullptr) {
-        cout << "User " << user->getUsername() << " not found in contact list" << endl;
-
-        vector<string> msg = {"1", "F", "LALALA"};
-        msgHandler->sendMsg(user->getSocket(), msgHandler->createMsg(&msg));
+        std::stringstream ss;
+        ss << "User " << user->getUsername() << " not found in contact list";
+        msgHandler->sendFalse(socket, ss.str());
     }
 
+    // TODO via MSG_HANDLER
     socket = toUser->getSocket();
-    msg = "1;" + parsedMsg.at(3) + ";" + parsedMsg.at(4);
 
-    //    messageReader->printMsg(parsedMsg);
+    vector<string>* responseMsg = new vector<string>();
+    responseMsg->push_back(to_string(MSG_RESPONSE));
+    responseMsg->push_back(TRUE_RESPONSE);
+    // from 
+    responseMsg->push_back(parsedMsg.at(2));
+    // message
+    responseMsg->push_back(parsedMsg.at(3));
 
     if (socket != -1) {
         // if is online -> comunikujem priamo na sockete 
-        buffer = &msg[0u];
-        //pošle serveru správu uloženú v bufferi 
-        n = write(socket, buffer, 255);
+        //        buffer = &msg[0u];
+        //        //pošle serveru správu uloženú v bufferi 
+        //        n = write(socket, buffer, 255);
+        msgHandler->sendMsg(socket, msgHandler->createMsg(responseMsg));
     } else {
         // user is OFFLINE -> add into his vector of messages
         cout << "Push into toUser messages" << endl;
+        // TODO via message handler
+        msg = "1;T;" + parsedMsg.at(2) + ";" + parsedMsg.at(3);
         toUser->getMessages()->push_back(msg);
     }
 
@@ -335,39 +373,113 @@ void ConnectionServer::sendMsg(vector<string> parsedMsg, ConnectedUser * user) {
 }
 
 void ConnectionServer::addToContacts(vector<string> parsedMsg, ConnectedUser * user) {
-    int n;
+    vector<string>* responseMsg = new vector<string>();
     vector<string>*contacts = user->getContacts();
-    bool flag = false;
+    string usernameToAdd = parsedMsg.at(2);
+    bool found = false;
 
-    if (parsedMsg.at(1) != user->getUsername()) {
-        for (int i = 0; i < contacts->size(); i++) {
-            if (contacts->at(i).compare(parsedMsg.at(1)) == 0) {
-                flag = true;
-            }
-        }
-    } else {
-        flag = true;
+    msgHandler->printMsg(&parsedMsg);
 
+    // sam seba    
+    if (usernameToAdd == user->getUsername()) {
+        msgHandler->sendFalse(user->getSocket(), "Cannot add yourself to contact list");
+        return;
     }
-    if (!flag) {
-        string msg;
-        char* buff;
-        for (int i = 0; i < allUsers->size(); i++) {
-            if (allUsers->at(i)->getUsername().compare(parsedMsg.at(1)) == 0) {
-                msg = "3;" + user->getUsername();
-                if (allUsers->at(i)->getSocket() == -1) {
-                    allUsers->at(i)->getMessages()->push_back(msg);
 
-                    break;
-                }
-                msg = "3;" + user->getUsername();
-                buff = &msg[0u];
-                n = write(allUsers->at(i)->getSocket(), buff, 255);
+    // already in CL
+    for (int i = 0; i < contacts->size(); i++) {
+        if (contacts->at(i).compare(usernameToAdd) == 0) {
+            msgHandler->sendFalse(user->getSocket(), "User is already a friend");
+            return;
+        }
+    }
+    cout << "Printint all users" << endl;
+    for (int i = 0; i < allUsers->size(); i++) {
+        cout << i + 1 << " " << allUsers->at(i)->getUsername() << endl;
+    }
 
+    for (int i = 0; i < allUsers->size(); i++) {
+        cout << i + 1 << " " << allUsers->at(i)->getUsername() << endl;
+        cout << "Evidované správy" << endl;
+        for (int j = 0; j < allUsers->at(i)->getMessages()->size(); j++) {
+            cout << allUsers->at(i)->getMessages()->at(j) << endl;
+        }
+    }
+
+    for (int i = 0; i < allUsers->size(); i++) {
+        cout << "Every user" << endl;
+        cout << allUsers->at(i)->getUsername() << endl;
+        cout << usernameToAdd << endl;
+        cout << allUsers->at(i)->getUsername().compare(usernameToAdd) << endl;
+
+        if (allUsers->at(i)->getUsername().compare(usernameToAdd) == 0) {
+            found = true;
+            // TODO user is OFFLINE
+            if (allUsers->at(i)->getSocket() == -1) {
+                string msg = "3;T;" + user->getUsername();
+                allUsers->at(i)->getMessages()->push_back(msg);
+                cout << "User is offline" << endl;
                 break;
             }
 
+            responseMsg->push_back(to_string(FR_RESPONSE));
+            responseMsg->push_back(TRUE_RESPONSE);
+            responseMsg->push_back(user->getUsername());
+
+            string testMSg = msgHandler->createMsg(responseMsg);
+            cout << "testssss " << testMSg << endl;
+            msgHandler->sendMsg(allUsers->at(i)->getSocket(), testMSg);
         }
     }
 
+    if (!found) {
+        msgHandler->sendFalse(user->getSocket(), "Username does not exist");
+    } else {
+        msgHandler->sendTrue(user->getSocket(), "Friend request send!");
+    }
 }
+
+void ConnectionServer::deleteFromContacts(vector<string> parsedMsg, ConnectedUser* user) {
+    string send;
+    int n;
+    char* buff;
+    string usernameToDelete = parsedMsg.at(1);
+
+    for (int i = 0; i < user->getContacts()->size(); i++) {
+        if (usernameToDelete != user->getUsername()) {
+            user->getContacts()->erase(user->getContacts()->begin() + i);
+            msgHandler->sendFalse(user->getSocket(), "Cannot delete self");
+            return;
+        }
+    }
+//    ConnectedUser* userD;
+//    
+//    for (auto a : *allUsers) {
+//        if (a->getUsername().compare(parsedMsg.at(1)) == 0) {
+//            userD = a;
+//            for (int j = 0; j < a->getContacts()->size(); j++) {
+//                if (a->getContacts()->at(j).compare(user->getUsername()) == 0) {
+//                    a->getContacts()->erase(a->getContacts()->begin() + j);
+//                }
+//            }
+//            break;
+//        }
+//    }
+//    
+//    int s = userD->getSocket();
+//    send = "1;I have deleted you from my contacts;" + user->getUsername();
+//    if (s != -1) {
+//
+//        buff = &send[0u];
+//        n = write(s, buff, 255); //pošle serveru správu uloženú v bufferi 
+//    } else {
+//        userD->getMessages()->push_back(send);
+//    }
+}
+
+ConnectionServer::~ConnectionServer() {
+    delete[] onlineUsers;
+    delete allUsers;
+    delete msgHandler;
+    close(newsockfd);
+};

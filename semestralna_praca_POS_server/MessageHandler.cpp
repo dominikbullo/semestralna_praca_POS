@@ -3,8 +3,6 @@
 using namespace std;
 
 const string delim = ";";
-const char *MSSG_TRUE = "0;T";
-const char *MSSG_FALSE = "0;F";
 
 void MessageHandler::printMsg(vector<string>* parsedMsg) {
     int counter = 1;
@@ -49,7 +47,7 @@ bool MessageHandler::isUserAuthentificated(vector<string>* parsedMsg) {
     try {
         userIsAuthentificated = stoi(parsedMsg->at(0));
         if (userIsAuthentificated != 1) {
-            cout << "Not authentificated" << endl;
+//            cout << "Not authentificated" << endl;
             return false;
         }
     } catch (const std::exception& e) {
@@ -67,11 +65,23 @@ void MessageHandler::sendMsg(int socket, string msg) {
 }
 
 void MessageHandler::sendMsg(int socket, const char * msg) {
-    cout << "Sending response " << msg << " on socket " << socket << endl;
+    cout << "Sending response with const char" << msg << " on socket " << socket << endl;
     int n = write(socket, msg, strlen(msg) + 1);
 }
 
 void MessageHandler::sendTrue(int socket) {
-     cout << "Sending TRUE" << endl;
-    MessageHandler::sendMsg(socket, MSSG_TRUE);
+//    cout << "Sending TRUE" << endl;
+    this->sendMsg(socket, this->MSG_TRUE);
+}
+
+void MessageHandler::sendTrue(int socket, string additionalInfo) {
+//    cout << "Sending TRUE with aditional info" << endl;
+    string msg = this->MSG_TRUE + delim + additionalInfo.c_str();    
+    this->sendMsg(socket, msg);
+}
+
+void MessageHandler::sendFalse(int socket, string additionalInfo) {
+//    cout << "Sending FALSE because: " << additionalInfo << endl;
+    string msg = this->MSG_FALSE + delim + additionalInfo.c_str();
+    this->sendMsg(socket, msg);
 }

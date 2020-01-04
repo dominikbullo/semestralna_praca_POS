@@ -23,6 +23,8 @@ using namespace std;
 class ConnectionServer {
 public:
     ConnectionServer();
+    virtual ~ConnectionServer();
+
     void controlUser(int socket);
     void registerUser(vector<string> parsedMsg, int socket);
     int loginUser(vector<string> parsedMsg, int socket);
@@ -30,16 +32,10 @@ public:
     void addToContacts(vector<string> parsedMsg, ConnectedUser* user);
     void deleteFromContacts(vector<string> parsedMsg, ConnectedUser* user);
 
-    inline virtual ~ConnectionServer() {
-        delete[] onlineUsers;
-        delete allUsers;
-        delete msgHandler;
-    };
-
 private:
     vector<ConnectedUser*> * allUsers;
     vector<ConnectedUser*> * onlineUsers;
-    MessageHandler* msgHandler;
+    MessageHandler* msgHandler = new MessageHandler();
     mutex mtx;
 };
 
