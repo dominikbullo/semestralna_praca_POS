@@ -1,5 +1,13 @@
 #include "MessageHandler.h"
 
+#define DEBUG
+
+#ifdef DEBUG
+#define DEBUG_MSG(str) do { std::cout << str << std::endl; } while( false )
+#else
+#define DEBUG_MSG(str) do { } while ( false )
+#endif
+
 using namespace std;
 
 const string delim = ";";
@@ -7,12 +15,12 @@ const string delim = ";";
 void MessageHandler::printMsg(vector<string>* parsedMsg) {
     int counter = 1;
 
-    cout << "Message START" << endl << endl;
+    DEBUG_MSG("Message START");
     for (auto i : *parsedMsg) {
-        cout << to_string(counter) << " -> " << i << endl;
+        DEBUG_MSG(to_string(counter) << " -> " << i);
         counter++;
     }
-    cout << endl << "Message END" << endl;
+    DEBUG_MSG("Message END");
 }
 
 string MessageHandler::createMsg(vector<string>* responseMsg) {
@@ -47,11 +55,11 @@ bool MessageHandler::isUserAuthentificated(vector<string>* parsedMsg) {
     try {
         userIsAuthentificated = stoi(parsedMsg->at(0));
         if (userIsAuthentificated != 1) {
-//            cout << "Not authentificated" << endl;
+            //            cout << "Not authentificated" << endl;
             return false;
         }
     } catch (const std::exception& e) {
-        cout << "I cannot determine whether a user is authenticated or not" << endl;
+        cout << "I cannot determine is message authenticated or not" << endl;
         cerr << e.what();
         return false;
     }
@@ -59,29 +67,29 @@ bool MessageHandler::isUserAuthentificated(vector<string>* parsedMsg) {
 }
 
 void MessageHandler::sendMsg(int socket, string msg) {
-    cout << "Sending response " << msg << " on socket " << socket << endl;
+    DEBUG_MSG("Sending response " << msg << " on socket " << socket);
     const char *msgToSocket = msg.c_str();
     int n = write(socket, msgToSocket, strlen(msgToSocket) + 1);
 }
 
 void MessageHandler::sendMsg(int socket, const char * msg) {
-    cout << "Sending response with const char" << msg << " on socket " << socket << endl;
+    DEBUG_MSG("Sending response with const char" << msg << " on socket " << socket);
     int n = write(socket, msg, strlen(msg) + 1);
 }
 
 void MessageHandler::sendTrue(int socket) {
-//    cout << "Sending TRUE" << endl;
+    //    cout << "Sending TRUE" << endl;
     this->sendMsg(socket, this->MSG_TRUE);
 }
 
 void MessageHandler::sendTrue(int socket, string additionalInfo) {
-//    cout << "Sending TRUE with aditional info" << endl;
-    string msg = this->MSG_TRUE + delim + additionalInfo.c_str();    
+    //    cout << "Sending TRUE with aditional info" << endl;
+    string msg = this->MSG_TRUE + delim + additionalInfo.c_str();
     this->sendMsg(socket, msg);
 }
 
 void MessageHandler::sendFalse(int socket, string additionalInfo) {
-//    cout << "Sending FALSE because: " << additionalInfo << endl;
+    //    cout << "Sending FALSE because: " << additionalInfo << endl;
     string msg = this->MSG_FALSE + delim + additionalInfo.c_str();
     this->sendMsg(socket, msg);
 }

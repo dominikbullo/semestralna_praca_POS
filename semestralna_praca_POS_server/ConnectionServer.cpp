@@ -20,6 +20,14 @@
 #define CL_RESPONSE 2
 #define FR_RESPONSE 3
 
+#define DEBUG
+
+#ifdef DEBUG
+#define DEBUG_MSG(str) do { std::cout << str << std::endl; } while( false )
+#else
+#define DEBUG_MSG(str) do { } while ( false )
+#endif
+
 using namespace std;
 
 const string TRUE_RESPONSE = "T";
@@ -53,7 +61,7 @@ ConnectionServer::ConnectionServer() {
     for (int a = 0; a < 10; a++) {
         binded = bind(sockfd, (struct sockaddr*) &serv_addr, sizeof (serv_addr));
         if (binded == 0) {
-            cout << "SERVER binded socket SUCCESSFUL" << endl;
+            DEBUG_MSG("SERVER binded socket SUCCESSFUL");
             break;
         } else {
             perror("Error! - cannot bind adresss");
@@ -78,12 +86,13 @@ ConnectionServer::ConnectionServer() {
     vector<thread> *threads = new vector<thread>();
 
     while (true) {
-        cout << "Waiting for socket..." << endl;
+        DEBUG_MSG("Waiting for socket...");
+
         newsockfd = accept(sockfd, (struct sockaddr*) &cli_addr, &cli_len);
 
         thread t(&ConnectionServer::controlUser, this, newsockfd);
         threads->push_back(move(t));
-        cout << "Created thread for socket" << endl;
+        DEBUG_MSG("Created thread for socket");
     }
 
     for (thread &thread : *threads) {
@@ -95,7 +104,7 @@ ConnectionServer::ConnectionServer() {
 }
 
 void ConnectionServer::controlUser(int socket) {
-    cout << "Control user on socket " << socket << endl;
+    DEBUG_MSG("Control user on socket " << socket);
 
     ConnectedUser* user;
 
@@ -130,8 +139,8 @@ void ConnectionServer::controlUser(int socket) {
         try {
             msgType = stoi(parsedMsg->at(1));
             msgSender = parsedMsg->at(2);
-            cout << "Received message type " << to_string(msgType) << endl;
-            cout << endl << msgSender << " " << msgBody << endl << endl;
+            DEBUG_MSG("Received message type " << to_string(msgType));
+            DEBUG_MSG(endl << msgSender << " " << msgBody << endl);
         } catch (const std::exception& e) {
             cerr << e.what() << endl;
         }
@@ -150,18 +159,18 @@ void ConnectionServer::controlUser(int socket) {
                 case LOG:
                 {
                     // login user
-                    cout << "Need to login user" << endl;
+                    DEBUG_MSG("Need to login user");
                     int i;
-                    cout << "Logging user on socket " << socket << endl;
+                    DEBUG_MSG("Logging user on socket " << socket);
                     if ((i = loginUser(*parsedMsg, socket)) != -1) {
                         pozicia = i;
                         user = allUsers->at(i);
                         //                        char* buffer;
-                        //                        cout << "sending messages" << endl;
+                        //                         DEBUG_MSG( "sending messages" << endl;
                         //                        for (int j = 0; j < user->getMessages()->size(); j++) {
                         //                            string saved = user->getMessages()->at(j);
                         //                            buffer = &saved[0u];
-                        //                            cout << "buffer " << buffer << endl;
+                        //                             DEBUG_MSG( "buffer " << buffer << endl;
                         //                            n = write(socket, buffer, 255); //pošle serveru správu uloženú v bufferi
                         //                        }
                     }
@@ -169,23 +178,23 @@ void ConnectionServer::controlUser(int socket) {
                 }
                 case EXIT:
                     // login user
-                    cout << "Need to offline user" << endl;
-                    cout << "Not implemented yet!" << endl;
+                    DEBUG_MSG("Need to offline user");
+                    cout << "Message type " << msgType << "not implemented yet!" << endl;
                     break;
                 default:
-                    cout << "Not implemented yet!" << endl;
+                    cout << "Message type " << msgType << "not implemented yet!" << endl;
                     break;
             }
         } else {
             switch (msgType) {
                 case SND_MSSG:
                     // received message
-                    cout << "Received messsage to user" << endl;
+                    DEBUG_MSG("Received messsage to user");
                     sendMsg(*parsedMsg, user);
                     break;
                 case SHOW_CL:
                     // show contact
-                    cout << "Show conctacts" << endl;
+                    DEBUG_MSG("Show conctacts");
                     responseMsg->push_back(to_string(CL_RESPONSE));
 
                     if (user->getContacts()->size() < 1) {
@@ -194,7 +203,7 @@ void ConnectionServer::controlUser(int socket) {
                     } else {
                         responseMsg->push_back(TRUE_RESPONSE);
                         for (int i = 0; i < user->getContacts()->size(); i++) {
-                            cout << "User contacts " << user->getContacts()->at(i) << endl;
+                            DEBUG_MSG("User contacts " << user->getContacts()->at(i));
                             responseMsg->push_back(user->getContacts()->at(i));
                         }
                     }
@@ -202,17 +211,17 @@ void ConnectionServer::controlUser(int socket) {
                     break;
                 case ADD_C:
                     // add contact
-                    cout << "Add concact" << endl;
+                    DEBUG_MSG("Add concact");
                     addToContacts(*parsedMsg, user);
                     break;
                 case DELETE_C:
                     // delete contact
-                    cout << "Delete contact" << endl;
+                    DEBUG_MSG("Delete contact");
                     deleteFromContacts(*parsedMsg, user);
                     break;
                 case OFFLINE:
                     // make contact offline
-                    cout << "Make contact offline" << endl;
+                    DEBUG_MSG("Make contact offline");
 
                     // TODO range check
                     for (int i = 0; i < onlineUsers->size(); i++) {
@@ -227,7 +236,7 @@ void ConnectionServer::controlUser(int socket) {
                     msgHandler->sendTrue(socket);
                     break;
                 default:
-                    cout << "Not implemented yet!" << endl;
+                    cout << "Message type " << msgType << "not implemented yet!" << endl;
                     break;
             }
         }
@@ -356,14 +365,10 @@ void ConnectionServer::sendMsg(vector<string> parsedMsg, ConnectedUser * user) {
     responseMsg->push_back(parsedMsg.at(3));
 
     if (socket != -1) {
-        // if is online -> comunikujem priamo na sockete 
-        //        buffer = &msg[0u];
-        //        //pošle serveru správu uloženú v bufferi 
-        //        n = write(socket, buffer, 255);
         msgHandler->sendMsg(socket, msgHandler->createMsg(responseMsg));
     } else {
         // user is OFFLINE -> add into his vector of messages
-        cout << "Push into toUser messages" << endl;
+        DEBUG_MSG("Push into toUser messages");
         // TODO via message handler
         msg = "1;T;" + parsedMsg.at(2) + ";" + parsedMsg.at(3);
         toUser->getMessages()->push_back(msg);
@@ -393,24 +398,24 @@ void ConnectionServer::addToContacts(vector<string> parsedMsg, ConnectedUser * u
             return;
         }
     }
-    cout << "Printint all users" << endl;
+    DEBUG_MSG("Printint all users");
     for (int i = 0; i < allUsers->size(); i++) {
         cout << i + 1 << " " << allUsers->at(i)->getUsername() << endl;
     }
 
     for (int i = 0; i < allUsers->size(); i++) {
-        cout << i + 1 << " " << allUsers->at(i)->getUsername() << endl;
-        cout << "Evidované správy" << endl;
+        DEBUG_MSG(i + 1 << " " << allUsers->at(i)->getUsername());
+        DEBUG_MSG("Evidované správy");
         for (int j = 0; j < allUsers->at(i)->getMessages()->size(); j++) {
-            cout << allUsers->at(i)->getMessages()->at(j) << endl;
+            DEBUG_MSG(allUsers->at(i)->getMessages()->at(j));
         }
     }
 
     for (int i = 0; i < allUsers->size(); i++) {
-        cout << "Every user" << endl;
-        cout << allUsers->at(i)->getUsername() << endl;
-        cout << usernameToAdd << endl;
-        cout << allUsers->at(i)->getUsername().compare(usernameToAdd) << endl;
+        DEBUG_MSG("Every user");
+        DEBUG_MSG(allUsers->at(i)->getUsername());
+        DEBUG_MSG(usernameToAdd);
+        DEBUG_MSG(allUsers->at(i)->getUsername().compare(usernameToAdd));
 
         if (allUsers->at(i)->getUsername().compare(usernameToAdd) == 0) {
             found = true;
@@ -418,7 +423,7 @@ void ConnectionServer::addToContacts(vector<string> parsedMsg, ConnectedUser * u
             if (allUsers->at(i)->getSocket() == -1) {
                 string msg = "3;T;" + user->getUsername();
                 allUsers->at(i)->getMessages()->push_back(msg);
-                cout << "User is offline" << endl;
+                DEBUG_MSG("User is offline");
                 break;
             }
 
@@ -426,9 +431,7 @@ void ConnectionServer::addToContacts(vector<string> parsedMsg, ConnectedUser * u
             responseMsg->push_back(TRUE_RESPONSE);
             responseMsg->push_back(user->getUsername());
 
-            string testMSg = msgHandler->createMsg(responseMsg);
-            cout << "testssss " << testMSg << endl;
-            msgHandler->sendMsg(allUsers->at(i)->getSocket(), testMSg);
+            msgHandler->sendMsg(allUsers->at(i)->getSocket(), msgHandler->createMsg(responseMsg));
         }
     }
 
@@ -448,33 +451,33 @@ void ConnectionServer::deleteFromContacts(vector<string> parsedMsg, ConnectedUse
     for (int i = 0; i < user->getContacts()->size(); i++) {
         if (usernameToDelete != user->getUsername()) {
             user->getContacts()->erase(user->getContacts()->begin() + i);
-            msgHandler->sendFalse(user->getSocket(), "Cannot delete self");
+            msgHandler->sendFalse(user->getSocket(), "Cannot delete yourself from contact list");
             return;
         }
     }
-//    ConnectedUser* userD;
-//    
-//    for (auto a : *allUsers) {
-//        if (a->getUsername().compare(parsedMsg.at(1)) == 0) {
-//            userD = a;
-//            for (int j = 0; j < a->getContacts()->size(); j++) {
-//                if (a->getContacts()->at(j).compare(user->getUsername()) == 0) {
-//                    a->getContacts()->erase(a->getContacts()->begin() + j);
-//                }
-//            }
-//            break;
-//        }
-//    }
-//    
-//    int s = userD->getSocket();
-//    send = "1;I have deleted you from my contacts;" + user->getUsername();
-//    if (s != -1) {
-//
-//        buff = &send[0u];
-//        n = write(s, buff, 255); //pošle serveru správu uloženú v bufferi 
-//    } else {
-//        userD->getMessages()->push_back(send);
-//    }
+    //    ConnectedUser* userD;
+    //    
+    //    for (auto a : *allUsers) {
+    //        if (a->getUsername().compare(parsedMsg.at(1)) == 0) {
+    //            userD = a;
+    //            for (int j = 0; j < a->getContacts()->size(); j++) {
+    //                if (a->getContacts()->at(j).compare(user->getUsername()) == 0) {
+    //                    a->getContacts()->erase(a->getContacts()->begin() + j);
+    //                }
+    //            }
+    //            break;
+    //        }
+    //    }
+    //    
+    //    int s = userD->getSocket();
+    //    send = "1;I have deleted you from my contacts;" + user->getUsername();
+    //    if (s != -1) {
+    //
+    //        buff = &send[0u];
+    //        n = write(s, buff, 255); //pošle serveru správu uloženú v bufferi 
+    //    } else {
+    //        userD->getMessages()->push_back(send);
+    //    }
 }
 
 ConnectionServer::~ConnectionServer() {
