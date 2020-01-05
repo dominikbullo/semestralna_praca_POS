@@ -12,6 +12,8 @@
 #define SHOW_CL 2
 #define ADD_C 3
 #define DELETE_C 4
+#define CHECK_FR 5
+#define DELETE_ACC 6
 #define OFFLINE 10
 
 // For authentificated users
@@ -32,14 +34,14 @@ using namespace std;
 
 const string TRUE_RESPONSE = "T";
 const string FALSE_RESPONSE = "F";
-int newsockfd;
 
 ConnectionServer::ConnectionServer() {
     // vytvorím si štruktúry
     onlineUsers = new vector<ConnectedUser*>();
     allUsers = new vector<ConnectedUser*>();
 
-    int sockfd, newsockf2;
+    // RES: https://www.bogotobogo.com/cplusplus/sockets_server_client.php
+    int sockfd, newsockfd;
 
     socklen_t cli_len;
     struct sockaddr_in serv_addr, cli_addr;
@@ -100,7 +102,9 @@ ConnectionServer::ConnectionServer() {
     }
 
     // RES: https://stackoverflow.com/questions/10619952/how-to-completely-destroy-a-socket-connection-in-c
+    // TODO proper closing
     close(newsockfd);
+    close(sockfd);
 }
 
 void ConnectionServer::controlUser(int socket) {
@@ -140,16 +144,17 @@ void ConnectionServer::controlUser(int socket) {
             msgType = stoi(parsedMsg->at(1));
             msgSender = parsedMsg->at(2);
             DEBUG_MSG("Received message type " << to_string(msgType));
-            DEBUG_MSG(endl << msgSender << " " << msgBody << endl);
         } catch (const std::exception& e) {
             cerr << e.what() << endl;
         }
         try {
             msgBody = parsedMsg->at(3);
+            DEBUG_MSG(endl << msgSender << " " << msgBody << endl);
         } catch (const std::exception& e) {
             cerr << e.what() << endl;
         }
-        //        unique_lock<mutex> lck(mtx);
+
+        //        unique_lock<mutex> lck(mtx);        
         if (!msgHandler->isUserAuthentificated(parsedMsg)) {
             switch (msgType) {
                 case REG:
@@ -179,7 +184,8 @@ void ConnectionServer::controlUser(int socket) {
                 case EXIT:
                     // login user
                     DEBUG_MSG("Need to offline user");
-                    cout << "Message type " << msgType << "not implemented yet!" << endl;
+                    msgHandler->sendTrue(socket);
+                    //                    cout << "Message type " << msgType << "not implemented yet!" << endl;
                     break;
                 default:
                     cout << "Message type " << msgType << "not implemented yet!" << endl;
@@ -222,7 +228,6 @@ void ConnectionServer::controlUser(int socket) {
                 case OFFLINE:
                     // make contact offline
                     DEBUG_MSG("Make contact offline");
-
                     // TODO range check
                     for (int i = 0; i < onlineUsers->size(); i++) {
                         if ((*onlineUsers)[i]->getUsername() == user->getUsername()) {
@@ -234,6 +239,20 @@ void ConnectionServer::controlUser(int socket) {
                     user->setSocket(-1);
                     user = nullptr;
                     msgHandler->sendTrue(socket);
+                    break;
+                case DELETE_ACC:
+                    // make contact offline
+                    DEBUG_MSG("Delete user account");
+                    for (int i = 0; i < allUsers->size(); i++) {
+                        if ((*allUsers)[i]->getUsername() == user->getUsername()) {
+                            allUsers->erase(allUsers->begin() + i);
+                            break;
+                        }
+
+                    }
+                    user->setSocket(-1);
+                    user = nullptr;
+                    msgHandler->sendTrue(socket, "User deleted");
                     break;
                 default:
                     cout << "Message type " << msgType << "not implemented yet!" << endl;
@@ -484,5 +503,4 @@ ConnectionServer::~ConnectionServer() {
     delete[] onlineUsers;
     delete allUsers;
     delete msgHandler;
-    close(newsockfd);
 };
