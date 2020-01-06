@@ -25,7 +25,6 @@ public:
     ConnectionClient();
     bool sendRequest(int option);
     bool responseFromServer(string msg);
-    void checkNews();
     ConnectionClient(const ConnectionClient& orig);
     int menu();
     void sendToServer(string message);
