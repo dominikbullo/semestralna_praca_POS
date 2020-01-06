@@ -1,6 +1,6 @@
 #include "ConnectionServer.h"
 
-#define PORT 20049 
+#define PORT 20044 
 
 // For non-authentificated users
 #define REG 1
@@ -8,7 +8,7 @@
 #define EXIT 10
 
 // For authentificated users
-#define SND_MSSG 1
+#define SND_MSG 1
 #define SHOW_CL 2
 #define ADD_C 3
 #define DELETE_C 4
@@ -57,6 +57,10 @@ ConnectionServer::ConnectionServer() {
     //tvorba samotného socketu "sockfd"
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
+    int enable = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof (int)) < 0)
+        perror("setsockopt(SO_REUSEADDR) failed");
+
     // priradenie adresy socketu (aj s overením)
     // pokúsim sa 10 krát bindovať socker
     int binded;
@@ -95,6 +99,7 @@ ConnectionServer::ConnectionServer() {
         thread t(&ConnectionServer::controlUser, this, newsockfd);
         threads->push_back(move(t));
         DEBUG_MSG("Created thread for socket");
+        DEBUG_MSG("Newsockfd: " << newsockfd);
     }
 
     for (thread &thread : *threads) {
@@ -122,7 +127,6 @@ void ConnectionServer::controlUser(int socket) {
 
     while (true) {
         responseMsg->clear();
-
         int msgType = -1;
         string msgSender = "";
         string msgBody = "";
@@ -154,9 +158,11 @@ void ConnectionServer::controlUser(int socket) {
             cerr << e.what() << endl;
         }
 
-        //        unique_lock<mutex> lck(mtx);        
+        //                unique_lock<mutex> lck(mtx);        
         if (!msgHandler->isUserAuthentificated(parsedMsg)) {
             switch (msgType) {
+                    // TODO try here mutex lock unlock
+                    // unique_lock<mutex> lck(mtx);   
                 case REG:
                     // register user
                     registerUser(*parsedMsg, socket);
@@ -170,13 +176,20 @@ void ConnectionServer::controlUser(int socket) {
                     if ((i = loginUser(*parsedMsg, socket)) != -1) {
                         pozicia = i;
                         user = allUsers->at(i);
-                        //                        char* buffer;
-                        //                         DEBUG_MSG( "sending messages" << endl;
+                        //                        DEBUG_MSG("sending messages");
                         //                        for (int j = 0; j < user->getMessages()->size(); j++) {
-                        //                            string saved = user->getMessages()->at(j);
-                        //                            buffer = &saved[0u];
-                        //                             DEBUG_MSG( "buffer " << buffer << endl;
-                        //                            n = write(socket, buffer, 255); //pošle serveru správu uloženú v bufferi
+                        //                        sring saved = user->getMessages()->at(j);
+                        //
+                        //                        for (int j = 0; j < 3; j++) {
+                        //                            DEBUG_MSG("sending messages in for");
+                        //                            sleep(1);
+                        //                            responseMsg->clear();
+                        //                            responseMsg->push_back(to_string(SND_MSG));
+                        //                            responseMsg->push_back(TRUE_RESPONSE);
+                        //                            responseMsg->push_back("From");
+                        //                            responseMsg->push_back("Message");
+                        //                            responseMsg->push_back("dominik");//
+                        //                            msgHandler->sendMsg(socket, msgHandler->createMsg(responseMsg));
                         //                        }
                     }
                     break;
@@ -193,7 +206,7 @@ void ConnectionServer::controlUser(int socket) {
             }
         } else {
             switch (msgType) {
-                case SND_MSSG:
+                case SND_MSG:
                     // received message
                     DEBUG_MSG("Received messsage to user");
                     sendMsg(*parsedMsg, user);
@@ -220,6 +233,18 @@ void ConnectionServer::controlUser(int socket) {
                     DEBUG_MSG("Add concact");
                     addToContacts(*parsedMsg, user);
                     break;
+                case CHECK_FR:
+                    // odpoved na request o pridani do priatelov
+                    user->getContacts()->push_back(parsedMsg->at(2));
+                    // TODO nie hocikoho
+                    for (auto a : *allUsers) {
+                        if (a->getUsername().compare(parsedMsg->at(2)) == 0) {
+                            a->getContacts()->push_back(user->getUsername());
+                            msgHandler->sendTrue(socket, "User SUCCESSFUL added to contact list");
+                            break;
+                        }
+                    }
+                    break;
                 case DELETE_C:
                     // delete contact
                     DEBUG_MSG("Delete contact");
@@ -234,11 +259,11 @@ void ConnectionServer::controlUser(int socket) {
                             onlineUsers->erase(onlineUsers->begin() + i);
                             break;
                         }
-
                     }
+
                     user->setSocket(-1);
                     user = nullptr;
-                    msgHandler->sendTrue(socket);
+                    msgHandler->sendTrue(socket, "User SUCCESSFUL deleted");
                     break;
                 case DELETE_ACC:
                     // make contact offline
@@ -259,7 +284,7 @@ void ConnectionServer::controlUser(int socket) {
                     break;
             }
         }
-        //        lck.unlock();
+        //                lck.unlock();
     }
 
     delete parsedMsg;
@@ -306,10 +331,10 @@ void ConnectionServer::registerUser(vector<string> parsedMsg, int socket) {
 
 int ConnectionServer::loginUser(vector<string> parsedMsg, int socket) {
     string username = parsedMsg.at(2);
-    std::cout << username << endl;
+    //    std::cout << username << endl;
 
     string password = parsedMsg.at(3);
-    std::cout << password << endl;
+    //    std::cout << password << endl;
 
     int i = -1;
     for (ConnectedUser* user : *allUsers) {
@@ -462,44 +487,57 @@ void ConnectionServer::addToContacts(vector<string> parsedMsg, ConnectedUser * u
 }
 
 void ConnectionServer::deleteFromContacts(vector<string> parsedMsg, ConnectedUser* user) {
-    string send;
-    int n;
-    char* buff;
-    string usernameToDelete = parsedMsg.at(1);
+    string usernameToDelete = parsedMsg.at(2);
+    DEBUG_MSG("Tryi'n delete " << usernameToDelete);
 
     for (int i = 0; i < user->getContacts()->size(); i++) {
         if (usernameToDelete != user->getUsername()) {
             user->getContacts()->erase(user->getContacts()->begin() + i);
-            msgHandler->sendFalse(user->getSocket(), "Cannot delete yourself from contact list");
-            return;
         }
     }
-    //    ConnectedUser* userD;
-    //    
-    //    for (auto a : *allUsers) {
-    //        if (a->getUsername().compare(parsedMsg.at(1)) == 0) {
-    //            userD = a;
-    //            for (int j = 0; j < a->getContacts()->size(); j++) {
-    //                if (a->getContacts()->at(j).compare(user->getUsername()) == 0) {
-    //                    a->getContacts()->erase(a->getContacts()->begin() + j);
-    //                }
-    //            }
-    //            break;
-    //        }
-    //    }
-    //    
-    //    int s = userD->getSocket();
-    //    send = "1;I have deleted you from my contacts;" + user->getUsername();
-    //    if (s != -1) {
-    //
-    //        buff = &send[0u];
-    //        n = write(s, buff, 255); //pošle serveru správu uloženú v bufferi 
-    //    } else {
-    //        userD->getMessages()->push_back(send);
-    //    }
+    msgHandler->printMsg(&parsedMsg);
+
+    ConnectedUser* userD = nullptr;
+
+    for (auto a : *allUsers) {
+        if (a->getUsername().compare(usernameToDelete) == 0) {
+            userD = a;
+            for (int j = 0; j < a->getContacts()->size(); j++) {
+                if (a->getContacts()->at(j).compare(user->getUsername()) == 0) {
+                    DEBUG_MSG("Deleting contact " << user->getUsername());
+                    a->getContacts()->erase(a->getContacts()->begin() + j);
+                }
+            }
+            break;
+        }
+    }
+
+    if (userD == nullptr) {
+        DEBUG_MSG("Username do not exist");
+        msgHandler->sendFalse(user->getSocket(), "Cannot delete user. Username do not exist");
+        return;
+    } else {
+        msgHandler->sendTrue(user->getSocket(), "User has been deleted");
+    }
+    
+    vector<string>* responseMsg = new vector<string>();
+    responseMsg->push_back(to_string(SND_MSG));
+    responseMsg->push_back(TRUE_RESPONSE);
+    responseMsg->push_back(user->getUsername());
+    responseMsg->push_back("I have deleted you from my contacts");
+    responseMsg->push_back(user->getUsername());
+
+    int s = userD->getSocket();
+    string send = msgHandler->createMsg(responseMsg);
+    if (s != -1) {
+        msgHandler->sendMsg(s, send);
+    } else {
+        userD->getMessages()->push_back(send);
+    }
 }
 
 ConnectionServer::~ConnectionServer() {
+    cout << "Destructor" << endl;
     delete[] onlineUsers;
     delete allUsers;
     delete msgHandler;

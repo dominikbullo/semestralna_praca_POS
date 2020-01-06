@@ -1,6 +1,6 @@
 #include "MessageHandler.h"
 
-#define DEBUG
+//#define DEBUG
 
 #ifdef DEBUG
 #define DEBUG_MSG(str) do { std::cout << str << std::endl; } while( false )
@@ -17,7 +17,7 @@ void MessageHandler::printMsg(vector<string>* parsedMsg) {
 
     DEBUG_MSG("Message START");
     for (auto i : *parsedMsg) {
-        DEBUG_MSG(to_string(counter) << " -> " << i);
+        cout << to_string(counter) << " -> " << i << endl;
         counter++;
     }
     DEBUG_MSG("Message END");
