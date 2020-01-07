@@ -67,14 +67,15 @@ bool MessageHandler::isUserAuthentificated(vector<string>* parsedMsg) {
 }
 
 void MessageHandler::sendMsg(int socket, string msg) {
-    DEBUG_MSG("Sending response " << msg << " on socket " << socket);
     const char *msgToSocket = msg.c_str();
-    int n = write(socket, msgToSocket, strlen(msgToSocket) + 1);
+    this->sendMsg(socket, msgToSocket);
 }
 
 void MessageHandler::sendMsg(int socket, const char * msg) {
     DEBUG_MSG("Sending response with const char" << msg << " on socket " << socket);
-    int n = write(socket, msg, strlen(msg) + 1);
+    if (socket != -1) {
+        int n = write(socket, msg, strlen(msg) + 1);
+    }
 }
 
 void MessageHandler::sendTrue(int socket) {

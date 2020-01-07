@@ -17,7 +17,6 @@ using namespace std;
 class ConnectedUser {
 public:
     ConnectedUser(int socket = -1);
-    void threadReadFunction();
     virtual ~ConnectedUser();
 
     inline int getSocket() {
