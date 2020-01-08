@@ -1,6 +1,6 @@
 #include "ConnectionServer.h"
 
-#define PORT 20044 
+#define PORT 20045
 
 // For non-authentificated users
 #define REG 1

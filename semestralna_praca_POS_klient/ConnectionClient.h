@@ -13,7 +13,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
-#include "MessageReader.h"
+#include "MessageHandler.h"
 
 #ifndef CONNECTIONCLIENT_H
 #define CONNECTIONCLIENT_H
@@ -23,24 +23,23 @@ using namespace std;
 class ConnectionClient {
 public:
     ConnectionClient();
+    virtual ~ConnectionClient();
     bool sendRequest(int option);
-    bool responseFromServer(string msg);
-    ConnectionClient(const ConnectionClient& orig);
+    bool responseFromServer(string message);
     int menu();
     void sendToServer(string message);
     void readResponse();
-    virtual ~ConnectionClient();
 private:
     int sockfd;
-    bool logged;
-    bool end;
-    vector<vector<string>* > * messages;
+    bool isLoggedPerson;
+    bool stop;
     string username;
-    vector<string> * requests;
-    mutex mtx;
-    condition_variable conditionVariable;
     string response;
-    MessageReader* messReader;
+    vector<vector<string>* > * messages;
+    vector<string> * requests;
+    mutex mutexBase;
+    condition_variable conditionVariable;
+    MessageHandler* messageHandler;
 };
 
 #endif /* CONNECTIONCLIENT_H */

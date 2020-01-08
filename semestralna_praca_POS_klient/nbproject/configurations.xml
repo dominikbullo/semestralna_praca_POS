@@ -5,7 +5,7 @@
                    displayName="Header Files"
                    projectFiles="true">
       <itemPath>ConnectionClient.h</itemPath>
-      <itemPath>MessageReader.h</itemPath>
+      <itemPath>MessageHandler.h</itemPath>
     </logicalFolder>
     <logicalFolder name="ResourceFiles"
                    displayName="Resource Files"
@@ -46,7 +46,7 @@
       </item>
       <item path="ConnectionClient.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="MessageReader.h" ex="false" tool="3" flavor2="0">
+      <item path="MessageHandler.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="mainClient.cpp" ex="false" tool="1" flavor2="0">
       </item>
@@ -75,7 +75,7 @@
       </item>
       <item path="ConnectionClient.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="MessageReader.h" ex="false" tool="3" flavor2="0">
+      <item path="MessageHandler.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="mainClient.cpp" ex="false" tool="1" flavor2="0">
       </item>
