@@ -50,6 +50,7 @@ ConnectionClient::ConnectionClient() {
     }
 
     thread t(&ConnectionClient::readResponse, this);
+
     logged = false;
     while (true) {
         if (this->end) {
@@ -70,7 +71,7 @@ void ConnectionClient::readResponse() {
         n = read(this->sockfd, buffer, 255);
         conditionVariable.notify_all();
         cout << string(buffer) << endl;
-        // this->messReader->readMsg(parsMsg, string(buffer));
+        this->messReader->readMsg(parsMsg, string(buffer));
         cout << parsMsg->at(0) << endl;
         switch (stoi(parsMsg->at(0))) {
             case INFO_RESPONSE:
@@ -216,7 +217,7 @@ bool ConnectionClient::sendRequest(int option_switch) {
                     cin.clear();
                     getline(cin, sendMessage);
                     msg = isLogged + ";" + option + ";" + this->username + ";" + sendMessage + ";" + username; //
-                    cout << msg << endl;//
+                    cout << msg << endl; //
                     //break;
                 }
                 responseFromServer(msg);
@@ -344,7 +345,7 @@ ConnectionClient::ConnectionClient(const ConnectionClient& orig) {
 
 ConnectionClient::~ConnectionClient() {
     delete this->requests;
-    for (auto a : *this->messages) {
+    for (auto a : * this->messages) {
         delete a;
     }
     delete this->messages;
