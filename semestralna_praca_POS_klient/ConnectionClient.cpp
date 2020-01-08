@@ -129,7 +129,7 @@ void ConnectionClient::readResponse() {
 int ConnectionClient::menu() {
     int option;
     if (logged) {
-        cout << "Welcome to Chat room" << endl;
+        cout << "Chat room" << endl;
         cout << "\t1. Send message." << endl;
         cout << "\t2. Show contacts." << endl;
         cout << "\t3. Add user to contacts." << endl;
@@ -170,7 +170,7 @@ int ConnectionClient::menu() {
             }
         } while (true);
     } else {
-        cout << "Welcome to Chat room" << endl;
+        cout << "Chat room" << endl;
         cout << "\t1. to Sign Up." << endl;
         cout << "\t2. to Sign In." << endl;
         cout << "\t10. CLOSE" << endl;
@@ -188,7 +188,6 @@ int ConnectionClient::menu() {
 }
 
 bool ConnectionClient::sendRequest(int option_switch) {
-    string toUser;
     string msg = "";
     string username = "errorName";
     string password = "errorPasswd";
@@ -202,13 +201,13 @@ bool ConnectionClient::sendRequest(int option_switch) {
         switch (option_switch) {
             case SND_MSSG:
                 cout << "Enter username of message receiver: " << endl;
-                cin >> toUser;
-                if (toUser != this->username) {
+                cin >> username;
+                if (username != this->username) {
                     cout << endl << "Please enter a your message:" << endl;
                     cin.ignore(10000, '\n');
                     cin.clear();
                     getline(cin, sendMessage);
-                    msg = isLogged + ";" + option + ";" + this->username + ";" + sendMessage + ";" + toUser;
+                    msg = isLogged + ";" + option + ";" + this->username + ";" + sendMessage + ";" + username;
                 } else {
                     cout << "You can`t send message to yourself" << endl;
                     // TODO remove
@@ -216,8 +215,8 @@ bool ConnectionClient::sendRequest(int option_switch) {
                     cin.ignore(10000, '\n');
                     cin.clear();
                     getline(cin, sendMessage);
-                    msg = isLogged + ";" + option + ";" + this->username + ";" + sendMessage + ";" + toUser; //
-                    cout << msg << endl;
+                    msg = isLogged + ";" + option + ";" + this->username + ";" + sendMessage + ";" + username; //
+                    cout << msg << endl;//
                     //break;
                 }
                 responseFromServer(msg);
@@ -302,7 +301,6 @@ bool ConnectionClient::sendRequest(int option_switch) {
                 msg = isLogged + ";" + option + ";" + username + ";" + password;
                 if (responseFromServer(msg)) {
                     this->username = username;
-                    cout << this->username << endl;
                     this->logged = true;
                 }
                 break;

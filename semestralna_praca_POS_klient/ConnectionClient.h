@@ -40,7 +40,6 @@ private:
     mutex mtx;
     condition_variable conditionVariable;
     string response;
-    //MessageReader* messReader;
 };
 
 #endif /* CONNECTIONCLIENT_H */
