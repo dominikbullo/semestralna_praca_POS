@@ -59,7 +59,6 @@ ConnectionClient::ConnectionClient() {
         menu();
     }
     t.join();
-    delete server;
 }
 
 void ConnectionClient::readResponse() {
