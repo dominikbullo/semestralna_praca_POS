@@ -90,9 +90,9 @@ void ConnectionClient::readResponse() {
                 if (parsMsg->at(1) == "F") {
                 } else {
                     cout << endl << "Contact list:" << endl;
-                    for (int i = 1; i < parsMsg->size(); i++) {
+                    for (int i = 2; i < parsMsg->size(); i++) {
                         if (parsMsg->at(i) != "") {
-                            cout << i << ". " << parsMsg->at(i) << endl;
+                            cout << i - 1 << ". " << parsMsg->at(i) << endl;
                         }
                     }
                 }
@@ -128,6 +128,7 @@ int ConnectionClient::menu() {
             for (int i = 0; i < this->messages->size(); i++) {
                 cout << (*this->messages)[i]->at(2) << ": " << (*this->messages)[i]->at(3) << endl;
             }
+            cout << endl;
         } catch (const std::exception& e) {
             cerr << e.what() << endl;
         }
@@ -172,9 +173,8 @@ int ConnectionClient::menu() {
 
 bool ConnectionClient::sendRequest(int option_switch) {
     string message = "";
-    string username = "errorName";
-    string password = "errorPasswd";
-    string sendMessage;
+    string toUser = "errorName";
+    string password = "errorName";
     string option = to_string(option_switch);
     int confirmDeleteAccount = 0;
 
@@ -183,16 +183,11 @@ bool ConnectionClient::sendRequest(int option_switch) {
     if (this->isLoggedPerson) {
         switch (option_switch) {
             case SND_MSSG:
-                cout << "Enter username of message receiver: " << endl;
-                cin >> username;
-                if (username != this->username) {
-                    cout << endl << "Please enter a your message:" << endl;
-                    cin.ignore(10000, '\n');
-                    cin.clear();
-                    getline(cin, sendMessage);
-                    message = isLogged + ";" + option + ";" + this->username + ";" + sendMessage + ";" + username;
+                toUser = userInput("Please enter a username:");
+                if (toUser != this->username) {
+                    message = isLogged + ";" + option + ";" + this->username + ";" + toUser + ";" + userInput("Please enter a your message:");
                 } else {
-                    cout << "You can`t send message to yourself" << endl;                   
+                    cout << "You can`t send message to yourself" << endl;
                 }
                 responseFromServer(message);
                 break;
@@ -201,24 +196,18 @@ bool ConnectionClient::sendRequest(int option_switch) {
                 responseFromServer(message);
                 break;
             case ADD_C:
-                cout << "Enter username - add contact:" << endl;
-                getline(cin, username);
-                message = isLogged + ";" + option + ";" + username;
+                message = isLogged + ";" + option + ";" + userInput("Enter username - add contact:");
                 responseFromServer(message);
                 break;
             case DELETE_C:
-                cout << "Enter username:" << endl;
-                getline(cin, username);
-                message = isLogged + ";" + option + ";" + username;
+                message = isLogged + ";" + option + ";" + userInput("Enter username:");
                 responseFromServer(message);
                 break;
             case CHECK_FR_REQ:
-                cout << "Enter username - add to friend" << endl;
-                getline(cin, username);
-                message = isLogged + ";" + option + ";" + username;
+                message = isLogged + ";" + option + ";" + userInput("Enter username - add to friend");
                 if (responseFromServer(message)) {
                     for (int i = 0; i < this->requests->size(); i++) {
-                        if (this->requests->at(i).compare(username) == 0) {
+                        if (this->requests->at(i).compare(toUser) == 0) {
                             this->requests->erase(this->requests->begin() + i);
                         }
                     }
@@ -246,34 +235,18 @@ bool ConnectionClient::sendRequest(int option_switch) {
     } else {
         switch (option_switch) {
             case REG:
-                cout << endl << "Please, enter a new username:" << endl;
-
-                cin >> username;
-                cin.clear();
-                cin.ignore(10000, '\n');
-
-                cout << endl << "Please, enter a new password:" << endl;
-
-                cin >> password;
-                cin.clear();
-                cin.ignore(10000, '\n');
-                message = isLogged + ";" + option + ";" + username + ";" + password;
+                toUser = userInput("Please, enter a new username:");
+                password = userInput("Please, enter a new password:");
+                message = isLogged + ";" + option + ";" + toUser + ";" + password;
+                cout << message << endl;
                 responseFromServer(message);
                 break;
             case LOG:
-                cout << endl << "Please, enter a username:" << endl;
-                cin >> username;
-                cin.clear();
-                cin.ignore(10000, '\n');
-
-                cout << endl << "Please, enter a password:" << endl;
-
-                cin >> password;
-                cin.clear();
-                cin.ignore(10000, '\n');
-                message = isLogged + ";" + option + ";" + username + ";" + password;
+                toUser = userInput("Please, enter a username:");
+                password = userInput("Please, enter a password:");
+                message = isLogged + ";" + option + ";" + toUser + ";" + password;
                 if (responseFromServer(message)) {
-                    this->username = username;
+                    this->username = toUser;
                     this->isLoggedPerson = true;
                 }
                 break;
@@ -289,9 +262,17 @@ bool ConnectionClient::sendRequest(int option_switch) {
     }
 }
 
+string ConnectionClient::userInput(string description) {
+    cout << description << endl;
+    string value;
+    cin.clear();
+    getline(cin, value);
+    return value;
+}
+
 bool ConnectionClient::responseFromServer(string message) {
     sendToServer(message);
-    // cout << this->response << endl;
+    cout << this->response << endl;
     if (this->response == "T") {
         return true;
     }

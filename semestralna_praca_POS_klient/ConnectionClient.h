@@ -29,12 +29,13 @@ public:
     int menu();
     void sendToServer(string message);
     void readResponse();
+    string userInput(string description);
 private:
+    string username;
+    string response;
     int sockfd;
     bool isLoggedPerson;
     bool stop;
-    string username;
-    string response;
     vector<vector<string>* > * messages;
     vector<string> * requests;
     mutex mutexBase;

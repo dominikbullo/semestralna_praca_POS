@@ -86,7 +86,7 @@ ConnectionServer::ConnectionServer() {
     cli_len = sizeof (cli_addr);
 
     cout << "SERVER initialized SUCCESSFUL" << endl;
-
+    vector<thread> *threads = new vector<thread>();
     while (1) {
         /* accept incoming connections */
         DEBUG_MSG("Waiting for socket...");
@@ -177,10 +177,10 @@ void ConnectionServer::controlUser(int socket) {
                         pozicia = i;
                         user = allUsers->at(i);
 
-//                        user->getMessages()->push_back("1;T;From;Message;dominik");
-//                        user->getMessages()->push_back("1;T;From;Message;dominik");
-//                        user->getMessages()->push_back("3;T;asdasd_dominik");
-//                        user->getMessages()->push_back("3;T;domin asdas ik");
+                        //                        user->getMessages()->push_back("1;T;From;Message;dominik");
+                        //                        user->getMessages()->push_back("1;T;From;Message;dominik");
+                        //                        user->getMessages()->push_back("3;T;asdasd_dominik");
+                        //                        user->getMessages()->push_back("3;T;domin asdas ik");
                         for (int j = 0; j < user->getMessages()->size(); j++) {
                             usleep(100);
                             string saved = user->getMessages()->at(j);
