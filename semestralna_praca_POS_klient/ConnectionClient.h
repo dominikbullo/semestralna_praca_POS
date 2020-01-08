@@ -29,13 +29,7 @@ public:
     int menu();
     void sendToServer(string message);
     void readResponse();
-    virtual ~ConnectionClient() {
-        delete requests;
-        for(auto a : *messages){
-            delete a;
-        }
-        delete messages;
-    };
+    virtual ~ConnectionClient();
 private:
     int sockfd;
     bool logged;
@@ -44,9 +38,9 @@ private:
     string username;
     vector<string> * requests;
     mutex mtx;
-    condition_variable cv;
+    condition_variable conditionVariable;
     string response;
-    MessageReader* messReader;
+    //MessageReader* messReader;
 };
 
 #endif /* CONNECTIONCLIENT_H */

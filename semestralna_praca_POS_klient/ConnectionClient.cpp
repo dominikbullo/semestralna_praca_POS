@@ -68,9 +68,9 @@ void ConnectionClient::readResponse() {
     while (!this->end) {
         parsMsg->clear();
         n = read(this->sockfd, buffer, 255);
-        cv.notify_all();
+        conditionVariable.notify_all();
         cout << string(buffer) << endl;
-        this->messReader->readMsg(parsMsg, string(buffer));
+        // this->messReader->readMsg(parsMsg, string(buffer));
         cout << parsMsg->at(0) << endl;
         switch (stoi(parsMsg->at(0))) {
             case INFO_RESPONSE:
@@ -336,11 +336,19 @@ void ConnectionClient::sendToServer(string message) {
 
     unique_lock<mutex> lk(this->mtx);
 
-    this->cv.wait(lk);
+    this->conditionVariable.wait(lk);
 
     lk.unlock();
 }
 
 ConnectionClient::ConnectionClient(const ConnectionClient& orig) {
+}
+
+ConnectionClient::~ConnectionClient() {
+    delete this->requests;
+    for (auto a : *this->messages) {
+        delete a;
+    }
+    delete this->messages;
 }
 
