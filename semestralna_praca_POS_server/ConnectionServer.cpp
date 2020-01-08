@@ -87,8 +87,6 @@ ConnectionServer::ConnectionServer() {
 
     cout << "SERVER initialized SUCCESSFUL" << endl;
 
-    //    vector<thread> *threads = new vector<thread>();
-
     while (1) {
         /* accept incoming connections */
         DEBUG_MSG("Waiting for socket...");
@@ -97,12 +95,15 @@ ConnectionServer::ConnectionServer() {
         DEBUG_MSG("Created thread for socket");
         thread t(&ConnectionServer::controlUser, this, newsockfd);
         t.detach();
-        //        threads->push_back(move(t));
+        threads->push_back(move(t));
+    }
+
+    for (thread &thread : *threads) {
+        thread.join();
     }
 
     // RES: https://stackoverflow.com/questions/10619952/how-to-completely-destroy-a-socket-connection-in-c
     // TODO proper closing
-    DEBUG_MSG("som tu");
     close(newsockfd);
     close(sockfd);
 }
@@ -175,22 +176,16 @@ void ConnectionServer::controlUser(int socket) {
                     if ((i = loginUser(*parsedMsg, socket)) != -1) {
                         pozicia = i;
                         user = allUsers->at(i);
-                        // TODO send messages after login
-                        //                        DEBUG_MSG("sending messages");
-                        //                        for (int j = 0; j < user->getMessages()->size(); j++) {
-                        //                        sring saved = user->getMessages()->at(j);
-                        //
-                        //                        for (int j = 0; j < 3; j++) {
-                        //                            DEBUG_MSG("sending messages in for");
-                        //                            sleep(1);
-                        //                            responseMsg->clear();
-                        //                            responseMsg->push_back(to_string(SND_MSG));
-                        //                            responseMsg->push_back(TRUE_RESPONSE);
-                        //                            responseMsg->push_back("From");
-                        //                            responseMsg->push_back("Message");
-                        //                            responseMsg->push_back("dominik");//
-                        //                            msgHandler->sendMsg(socket, msgHandler->createMsg(responseMsg));
-                        //                        }
+
+//                        user->getMessages()->push_back("1;T;From;Message;dominik");
+//                        user->getMessages()->push_back("1;T;From;Message;dominik");
+//                        user->getMessages()->push_back("3;T;asdasd_dominik");
+//                        user->getMessages()->push_back("3;T;domin asdas ik");
+                        for (int j = 0; j < user->getMessages()->size(); j++) {
+                            usleep(100);
+                            string saved = user->getMessages()->at(j);
+                            msgHandler->sendMsg(socket, saved);
+                        }
                     }
                     break;
                 }
@@ -198,7 +193,6 @@ void ConnectionServer::controlUser(int socket) {
                     // login user
                     DEBUG_MSG("Need to offline user");
                     msgHandler->sendTrue(socket);
-                    //                    cout << "Message type " << msgType << "not implemented yet!" << endl;
                     break;
                 default:
                     cout << "Message type " << msgType << "not implemented yet!" << endl;
