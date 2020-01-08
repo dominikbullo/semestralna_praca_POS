@@ -40,7 +40,7 @@ ConnectionServer::ConnectionServer() {
     onlineUsers = new vector<ConnectedUser*>();
     allUsers = new vector<ConnectedUser*>();
 
-    // RES: https://www.bogotobogo.com/cplusplus/sockets_server_client.php
+    // RES: https://www.bogotobogo.com/Qt/Qt5_QTcpServer_Multithreaded_Client_Server.php
     int sockfd, newsockfd;
 
     socklen_t cli_len;
@@ -55,7 +55,7 @@ ConnectionServer::ConnectionServer() {
     serv_addr.sin_port = htons(PORT);
 
     //tvorba samotného socketu "sockfd"
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
     int enable = 1;
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof (int)) < 0)
@@ -87,27 +87,22 @@ ConnectionServer::ConnectionServer() {
 
     cout << "SERVER initialized SUCCESSFUL" << endl;
 
-    // Creating new thread for every new user
-    // Could ouse thread pool...but..
-    vector<thread> *threads = new vector<thread>();
+    //    vector<thread> *threads = new vector<thread>();
 
-    while (true) {
+    while (1) {
+        /* accept incoming connections */
         DEBUG_MSG("Waiting for socket...");
-
         newsockfd = accept(sockfd, (struct sockaddr*) &cli_addr, &cli_len);
-
-        thread t(&ConnectionServer::controlUser, this, newsockfd);
-        threads->push_back(move(t));
+        /* start a new thread but do not wait for it */
         DEBUG_MSG("Created thread for socket");
-        DEBUG_MSG("Newsockfd: " << newsockfd);
-    }
-
-    for (thread &thread : *threads) {
-        thread.join();
+        thread t(&ConnectionServer::controlUser, this, newsockfd);
+        t.detach();
+        //        threads->push_back(move(t));
     }
 
     // RES: https://stackoverflow.com/questions/10619952/how-to-completely-destroy-a-socket-connection-in-c
     // TODO proper closing
+    DEBUG_MSG("som tu");
     close(newsockfd);
     close(sockfd);
 }
@@ -137,6 +132,7 @@ void ConnectionServer::controlUser(int socket) {
         //načítava do buffera z newsockfd
         response = read(socket, buffer, 255);
 
+        DEBUG_MSG("Response is " << response);
         if (response == 0 || response == -1) {
             break;
         }
@@ -243,7 +239,9 @@ void ConnectionServer::controlUser(int socket) {
                     // TODO nie hocikoho
                     for (auto a : *allUsers) {
                         if (a->getUsername().compare(parsedMsg->at(2)) == 0) {
+                            unique_lock<mutex> lck(mtx);
                             a->getContacts()->push_back(user->getUsername());
+                            lck.unlock();
                             msgHandler->sendTrue(socket, "User SUCCESSFUL added to contact list");
                             break;
                         }
@@ -259,7 +257,9 @@ void ConnectionServer::controlUser(int socket) {
                     DEBUG_MSG("Make contact offline");
                     for (int i = 0; i < onlineUsers->size(); i++) {
                         if ((*onlineUsers)[i]->getUsername() == user->getUsername()) {
+                            unique_lock<mutex> lck(mtx);
                             onlineUsers->erase(onlineUsers->begin() + i);
+                            lck.unlock();
                             break;
                         }
                     }
@@ -273,7 +273,9 @@ void ConnectionServer::controlUser(int socket) {
                     DEBUG_MSG("Delete user account");
                     for (int i = 0; i < allUsers->size(); i++) {
                         if ((*allUsers)[i]->getUsername() == user->getUsername()) {
+                            unique_lock<mutex> lck(mtx);
                             allUsers->erase(allUsers->begin() + i);
+                            lck.unlock();
                             break;
                         }
 
@@ -294,7 +296,9 @@ void ConnectionServer::controlUser(int socket) {
     if (user != nullptr) {
         for (int i = 0; i < onlineUsers->size(); i++) {
             if ((*onlineUsers)[i]->getUsername() == user->getUsername()) {
+                unique_lock<mutex> lck(mtx);
                 onlineUsers->erase(onlineUsers->begin() + i);
+                lck.unlock();
                 break;
             }
         }
@@ -340,8 +344,8 @@ int ConnectionServer::loginUser(vector<string> parsedMsg, int socket) {
         i++;
         if (user->getUsername().compare(username) == 0 && user->getPassword().compare(password) == 0) {
             if (user->getSocket() == -1) {
-                unique_lock<mutex> lck(mtx);
                 user->setSocket(socket);
+                unique_lock<mutex> lck(mtx);
                 onlineUsers->push_back(user);
                 lck.unlock();
                 msgHandler->sendTrue(socket);
@@ -463,7 +467,7 @@ void ConnectionServer::deleteFromContacts(vector<string> parsedMsg, ConnectedUse
             user->getContacts()->erase(user->getContacts()->begin() + i);
         }
     }
-    
+
     ConnectedUser* userD = nullptr;
 
     for (auto a : *allUsers) {
