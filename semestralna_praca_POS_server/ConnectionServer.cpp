@@ -123,11 +123,11 @@ void ConnectionServer::controlUser(int socket) {
     vector<string>* responseMsg = new vector<string>();
 
     while (true) {
-        responseMsg->clear();
         int msgType = -1;
         string msgSender = "";
         string msgBody = "";
 
+        responseMsg->clear();
         parsedMsg->clear();
         //čistí buffer
         bzero(buffer, 256);
@@ -163,7 +163,6 @@ void ConnectionServer::controlUser(int socket) {
         // unique_lock<mutex> lck(mtx);        
         if (!msgHandler->isUserAuthentificated(parsedMsg)) {
             switch (msgType) {
-
                 case REG:
                     // register user
                     registerUser(*parsedMsg, socket);
@@ -358,13 +357,8 @@ int ConnectionServer::loginUser(vector<string> parsedMsg, int socket) {
 
 void ConnectionServer::sendMsg(vector<string> parsedMsg, ConnectedUser * user) {
     ConnectedUser* toUser = nullptr;
-
-    int socket;
-    char* buffer;
-    string msg;
-    int n;
     bool flag = false;
-    string toUserUsername = parsedMsg.at(4);
+    string toUserUsername = parsedMsg.at(3);
 
     for (ConnectedUser* user : *allUsers) {
         // needs to be online
@@ -386,36 +380,37 @@ void ConnectionServer::sendMsg(vector<string> parsedMsg, ConnectedUser * user) {
         }
     }
 
-    if (toUser == nullptr) {
+    if (toUser == nullptr || !flag) {
         std::stringstream ss;
-        ss << "User " << toUser->getUsername() << " not found in contact list";
+        ss << "User " << toUserUsername << " not found in contact list";
         msgHandler->sendFalse(user->getSocket(), ss.str());
         return;
     }
 
     // TODO via MSG_HANDLER
-    socket = toUser->getSocket();
+    int socket = toUser->getSocket();
     vector<string>* responseMsg = new vector<string>();
+    
     responseMsg->push_back(to_string(MSG_RESPONSE));
     responseMsg->push_back(TRUE_RESPONSE);
     // from 
     responseMsg->push_back(parsedMsg.at(2));
     // message
-    responseMsg->push_back(parsedMsg.at(3));
+    responseMsg->push_back(parsedMsg.at(4));
 
     if (socket != -1) {
+        DEBUG_MSG("test3");
         msgHandler->sendMsg(socket, msgHandler->createMsg(responseMsg));
     } else {
         // user is OFFLINE -> add into his vector of messages
         DEBUG_MSG("Push into toUser messages");
         toUser->getMessages()->push_back(msgHandler->createMsg(responseMsg));
     }
-    delete responseMsg;
 }
 
 void ConnectionServer::addToContacts(vector<string> parsedMsg, ConnectedUser * user) {
     vector<string>* responseMsg = new vector<string>();
-    vector<string>*contacts = user->getContacts();
+    vector<string>* contacts = user->getContacts();
     string usernameToAdd = parsedMsg.at(2);
     bool found = false;
 
@@ -454,8 +449,7 @@ void ConnectionServer::addToContacts(vector<string> parsedMsg, ConnectedUser * u
     } else {
         msgHandler->sendTrue(user->getSocket(), "Friend request send!");
     }
-    
-    delete contacts;
+
     delete responseMsg;
 }
 
@@ -505,7 +499,6 @@ void ConnectionServer::deleteFromContacts(vector<string> parsedMsg, ConnectedUse
     } else {
         userD->getMessages()->push_back(msgHandler->createMsg(responseMsg));
     }
-    delete responseMsg;
 }
 
 ConnectionServer::~ConnectionServer() {
