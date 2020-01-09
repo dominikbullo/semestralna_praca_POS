@@ -106,6 +106,7 @@ ConnectionServer::ConnectionServer() {
     // TODO proper closing
     close(newsockfd);
     close(sockfd);
+    delete threads;
 }
 
 void ConnectionServer::controlUser(int socket) {
@@ -286,6 +287,7 @@ void ConnectionServer::controlUser(int socket) {
         //                lck.unlock();
     }
 
+    delete responseMsg;
     delete parsedMsg;
     if (user != nullptr) {
         for (int i = 0; i < onlineUsers->size(); i++) {
@@ -386,8 +388,9 @@ void ConnectionServer::sendMsg(vector<string> parsedMsg, ConnectedUser * user) {
 
     if (toUser == nullptr) {
         std::stringstream ss;
-        ss << "User " << user->getUsername() << " not found in contact list";
-        msgHandler->sendFalse(socket, ss.str());
+        ss << "User " << toUser->getUsername() << " not found in contact list";
+        msgHandler->sendFalse(user->getSocket(), ss.str());
+        return;
     }
 
     // TODO via MSG_HANDLER
@@ -407,6 +410,7 @@ void ConnectionServer::sendMsg(vector<string> parsedMsg, ConnectedUser * user) {
         DEBUG_MSG("Push into toUser messages");
         toUser->getMessages()->push_back(msgHandler->createMsg(responseMsg));
     }
+    delete responseMsg;
 }
 
 void ConnectionServer::addToContacts(vector<string> parsedMsg, ConnectedUser * user) {
@@ -450,6 +454,9 @@ void ConnectionServer::addToContacts(vector<string> parsedMsg, ConnectedUser * u
     } else {
         msgHandler->sendTrue(user->getSocket(), "Friend request send!");
     }
+    
+    delete contacts;
+    delete responseMsg;
 }
 
 void ConnectionServer::deleteFromContacts(vector<string> parsedMsg, ConnectedUser* user) {
@@ -498,6 +505,7 @@ void ConnectionServer::deleteFromContacts(vector<string> parsedMsg, ConnectedUse
     } else {
         userD->getMessages()->push_back(msgHandler->createMsg(responseMsg));
     }
+    delete responseMsg;
 }
 
 ConnectionServer::~ConnectionServer() {
