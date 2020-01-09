@@ -24,7 +24,7 @@ class ConnectionClient {
 public:
     ConnectionClient();
     virtual ~ConnectionClient();
-    bool sendRequest(int option);
+    void sendRequest(int option);
     bool responseFromServer(string message);
     int menu();
     void sendToServer(string message);
@@ -35,7 +35,7 @@ private:
     string response;
     int sockfd;
     bool isLoggedPerson;
-    bool stop;
+    bool stop; 
     vector<vector<string>* > * messages;
     vector<string> * requests;
     mutex mutexBase;

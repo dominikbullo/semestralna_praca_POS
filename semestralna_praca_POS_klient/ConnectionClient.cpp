@@ -168,10 +168,11 @@ int ConnectionClient::menu() {
         } while (true);
     }
     sendRequest(option);
+    cout << "return" << endl;
     return 0;
 }
 
-bool ConnectionClient::sendRequest(int option_switch) {
+void ConnectionClient::sendRequest(int option_switch) {
     string message = "";
     string toUser = "errorName";
     string password = "errorName";
@@ -204,7 +205,8 @@ bool ConnectionClient::sendRequest(int option_switch) {
                 responseFromServer(message);
                 break;
             case CHECK_FR_REQ:
-                message = isLogged + ";" + option + ";" + userInput("Enter username - add to friend");
+                toUser = userInput("Enter username - add to friend");
+                message = isLogged + ";" + option + ";" + toUser;
                 if (responseFromServer(message)) {
                     for (int i = 0; i < this->requests->size(); i++) {
                         if (this->requests->at(i).compare(toUser) == 0) {
@@ -238,7 +240,6 @@ bool ConnectionClient::sendRequest(int option_switch) {
                 toUser = userInput("Please, enter a new username:");
                 password = userInput("Please, enter a new password:");
                 message = isLogged + ";" + option + ";" + toUser + ";" + password;
-                cout << message << endl;
                 responseFromServer(message);
                 break;
             case LOG:
@@ -272,15 +273,13 @@ string ConnectionClient::userInput(string description) {
 
 bool ConnectionClient::responseFromServer(string message) {
     sendToServer(message);
-    cout << this->response << endl;
-    if (this->response == "T") {
+    if (string(this->response).compare("T") == 0) {
         return true;
     }
     return false;
 }
 
 void ConnectionClient::sendToServer(string message) {
-    // cout << message << endl;
     const char* buffer = &message[0u];
     int any = write(sockfd, buffer, 255);
 
